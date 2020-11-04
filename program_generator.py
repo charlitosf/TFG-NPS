@@ -11,7 +11,7 @@ import json
 import argparse
 
 MAX_E_CONCAT = 5
-INPUT_STR_SIZE = 6
+INPUT_STR_SIZE = 7
 MAX_STR_SIZE = 15
 MIN_STR_SIZE = 2
 
