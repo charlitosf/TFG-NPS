@@ -37,12 +37,12 @@ def gen_e():
 
 def gen_f():
     res = {
-        "sub_str": {}
+        "sub_str": []
         }
     k1 = random.randint(0, INPUT_STR_SIZE-1)
     k2 = random.randint(k1, INPUT_STR_SIZE-1)
-    res["sub_str"]["k1"] = k1
-    res["sub_str"]["k2"] = k2
+    res["sub_str"].append(k1)
+    res["sub_str"].append(k2)
     
     return res
 
@@ -67,13 +67,13 @@ def gen_const_str_c():
 
 def gen_get_token():
     res = {
-            "get_token": {}
+            "get_token": []
         }
     
     res_i = gen_index()
     res_type = gen_type()
-    res["get_token"]["t"] = res_type
-    res["get_token"]["i"] = res_i
+    res["get_token"].append(res_i)
+    res["get_token"].append(res_type)
     
     return res
 
@@ -85,12 +85,12 @@ def gen_to_case():
 
 def gen_swap():
     res = {
-            "swap": {}
+            "swap": []
         }
     
-    res["swap"]["i1"] = gen_index()
-    res["swap"]["i2"] = gen_index()
-    res["swap"]["t"] = gen_type()
+    res["swap"].append(gen_index())
+    res["swap"].append(gen_index())
+    res["swap"].append(gen_type())
     
     return res
 

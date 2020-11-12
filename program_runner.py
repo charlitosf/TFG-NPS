@@ -30,8 +30,8 @@ def decode_e(e):
     return options[key](e[key])
 
 def decode_substr(k1_k2):
-    k1 = k1_k2['k1']
-    k2 = k1_k2['k2']
+    k1 = k1_k2[0]
+    k2 = k1_k2[1]
     
     return INPUT[k1:k2]
 
@@ -51,13 +51,11 @@ def decode_swap(i1_i2_t):
             'word': decode_swap_word,
             'char': decode_swap_char
         }
-    i1 = i1_i2_t['i1']
-    i2 = i1_i2_t['i2']
-    t = i1_i2_t['t']
+    i1 = i1_i2_t[0]
+    i2 = i1_i2_t[1]
+    t = i1_i2_t[2]
     
     return options[t](i1, i2, INPUT)
-    
-    return ''
 
 def decode_lower(in_str):
     return in_str.lower()
@@ -82,7 +80,17 @@ def decode_proper(in_str):
     return new_str
 
 def decode_get_token(i_t):
-    pass
+    options = {
+            'number': decode_get_number,
+            'digit': decode_get_digit,
+            'word': decode_get_word,
+            'char': decode_get_char
+        }
+    
+    i = i_t[0]
+    t = i_t[1]
+    
+    return options[t](i, INPUT)
 
 def decode_const_str_c(c):
     return c
@@ -99,7 +107,7 @@ def decode_swap_number(i1, i2, in_str):
     return ' '.join(new_str)
 
 def decode_swap_digit(i1, i2, in_str):
-    filtered_str = [[i, x] for i, x in enumerate(in_str) if x.isNumeric()]
+    filtered_str = [[i, x] for i, x in enumerate(in_str) if x.isnumeric()]
     real_i1 = filtered_str[i1][0]
     real_i2 = filtered_str[i2][0]
     in_str[real_i1], in_str[real_i2] = in_str[real_i2], in_str[real_i1]
@@ -114,6 +122,23 @@ def decode_swap_char(i1, i2, in_str):
     new_str = list(in_str)
     new_str[i1], new_str[i2] = new_str[i2], new_str[i1]
     return ''.join(new_str)
+
+def decode_get_number(i, in_str):
+    new_str = in_str.split()
+    filtered_str = [[i, x] for i, x in enumerate(new_str) if x.isnumeric()]
+    return filtered_str[i]
+
+def decode_get_digit(i, in_str):
+    filtered_str = [[i, x] for i, x in enumerate(in_str) if x.isnumeric()]
+    return filtered_str[i]
+
+def decode_get_word(i, in_str):
+    new_str = in_str.split()
+    return new_str[i]
+
+def decode_get_char(i, in_str):
+    return in_str[i]
+
 
 if __name__ == '__main__':
     ## Parsing arguments
