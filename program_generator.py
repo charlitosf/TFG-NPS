@@ -6,26 +6,32 @@ Created on Mon Nov  2 23:09:52 2020
 """
 import random
 #random.seed(1235)
-import string
 import json
 import argparse
 
-MAX_E_CONCAT = 5
-INPUT_STR_SIZE = 7
-MAX_STR_SIZE = 15
-MIN_STR_SIZE = 2
+with open("config.json", 'r') as fp:
+    CONFIG = json.load(fp)
+    fp.close()
+    
+CONFIG = CONFIG['DEFAULT']
 
-c = [string.ascii_uppercase, string.ascii_lowercase, string.digits, ' ', '.']
-t = ["number", "digit", "word", "char"]
-s = ["proper", "all_caps", "lower"]
+MAX_E_CONCAT = CONFIG['MAX_E_CONCAT']
+MAX_STR_SIZE = CONFIG['MAX_STR_SIZE']
+MIN_STR_SIZE = CONFIG['MIN_STR_SIZE']
+
+METHODS = CONFIG['methods']
+
+c = CONFIG['c']
+t = CONFIG['t']
+s = CONFIG['s']
 
 def gen_p():
     amount_e = random.randint(1, MAX_E_CONCAT)
     res = {
-            "concat" : []
+            METHODS['concat'] : []
         }
     for i in range(amount_e):
-        res["concat"].append(gen_e())
+        res[METHODS['concat']].append(gen_e())
 
     return res
 
@@ -37,12 +43,12 @@ def gen_e():
 
 def gen_f():
     res = {
-        "sub_str": []
+            METHODS['sub_str']: []
         }
-    k1 = random.randint(0, INPUT_STR_SIZE-1)
-    k2 = random.randint(k1, INPUT_STR_SIZE-1)
-    res["sub_str"].append(k1)
-    res["sub_str"].append(k2)
+    k1 = random.randint(0, MAX_STR_SIZE-1)
+    k2 = random.randint(k1, MAX_STR_SIZE-1)
+    res[METHODS['sub_str']].append(k1)
+    res[METHODS['sub_str']].append(k2)
     
     return res
 
@@ -55,42 +61,42 @@ def gen_n():
 def gen_const_str_w():
     res = {}
 
-    res["const_str_w"] = gen_word()
+    res[METHODS['const_str_w']] = gen_word()
     
     return res
 
 def gen_const_str_c():
     res = {}
-    res["const_str_c"] = gen_character()
+    res[METHODS['const_str_c']] = gen_character()
     
     return res
 
 def gen_get_token():
     res = {
-            "get_token": []
+            METHODS['get_token']: []
         }
     
     res_i = gen_index()
     res_type = gen_type()
-    res["get_token"].append(res_i)
-    res["get_token"].append(res_type)
+    res[METHODS['get_token']].append(res_i)
+    res[METHODS['get_token']].append(res_type)
     
     return res
 
 def gen_to_case():
     res = {}
-    res["to_case"] = gen_case()
+    res[METHODS['to_case']] = gen_case()
     
     return res
 
 def gen_swap():
     res = {
-            "swap": []
+            METHODS['swap']: []
         }
     
-    res["swap"].append(gen_index())
-    res["swap"].append(gen_index())
-    res["swap"].append(gen_type())
+    res[METHODS['swap']].append(gen_index())
+    res[METHODS['swap']].append(gen_index())
+    res[METHODS['swap']].append(gen_type())
     
     return res
 
@@ -101,7 +107,7 @@ def gen_case():
     return random.choice(s)
 
 def gen_index():
-    return random.randint(-INPUT_STR_SIZE, INPUT_STR_SIZE-1)
+    return random.randint(-MAX_STR_SIZE, MAX_STR_SIZE-1)
 
 def gen_word():
     length = range(random.randint(MIN_STR_SIZE, MAX_STR_SIZE))

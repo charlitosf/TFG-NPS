@@ -8,8 +8,15 @@ Created on Tue Nov  3 21:27:17 2020
 import argparse
 import json
 
+with open("config.json", 'r') as fp:
+    CONFIG = json.load(fp)
+    fp.close()
+
+CONFIG = CONFIG['DEFAULT']
+METHODS = CONFIG['methods']
+
 def decode_p(p):
-    param_list = p['concat']
+    param_list = p[METHODS['concat']]
     res = ''
     
     for param in param_list:
@@ -19,12 +26,12 @@ def decode_p(p):
 
 def decode_e(e):
     options = {
-            'sub_str': decode_substr,
-            'to_case': decode_to_case,
-            'get_token': decode_get_token,
-            'swap': decode_swap,
-            'const_str_c': decode_const_str_c,
-            'const_str_w': decode_const_str_w
+            METHODS['sub_str']: decode_substr,
+            METHODS['to_case']: decode_to_case,
+            METHODS['get_token']: decode_get_token,
+            METHODS['swap']: decode_swap,
+            METHODS['const_str_c']: decode_const_str_c,
+            METHODS['const_str_w']: decode_const_str_w
         }
     key = list(e.keys())[0]
     return options[key](e[key])
@@ -37,19 +44,19 @@ def decode_substr(k1_k2):
 
 def decode_to_case(s):
     options = {
-            'proper': decode_proper,
-            'all_caps': decode_upper,
-            'lower': decode_lower
+            CONFIG['s'][0]: decode_proper,
+            CONFIG['s'][1]: decode_upper,
+            CONFIG['s'][2]: decode_lower
         }
     
     return options[s](INPUT)
 
 def decode_swap(i1_i2_t):
     options = {
-            'number': decode_swap_number,
-            'digit': decode_swap_digit,
-            'word': decode_swap_word,
-            'char': decode_swap_char
+            CONFIG['t'][0]: decode_swap_number,
+            CONFIG['t'][1]: decode_swap_digit,
+            CONFIG['t'][2]: decode_swap_word,
+            CONFIG['t'][3]: decode_swap_char
         }
     i1 = i1_i2_t[0]
     i2 = i1_i2_t[1]
@@ -81,10 +88,10 @@ def decode_proper(in_str):
 
 def decode_get_token(i_t):
     options = {
-            'number': decode_get_number,
-            'digit': decode_get_digit,
-            'word': decode_get_word,
-            'char': decode_get_char
+            CONFIG['t'][0]: decode_get_number,
+            CONFIG['t'][1]: decode_get_digit,
+            CONFIG['t'][2]: decode_get_word,
+            CONFIG['t'][3]: decode_get_char
         }
     
     i = i_t[0]
