@@ -113,11 +113,14 @@ def gen_character():
 if __name__ == "__main__":
     ## Argument parsing
     parser = argparse.ArgumentParser(description='Generator of random programs')
-    parser.add_argument('-s', '--save', metavar='FILENAME')
+    parser.add_argument('-s', '--save', metavar='FILENAME', help='Filename of file where output is to be saved')
+    parser.add_argument('-i', '--iterations', metavar='ITERATIONS', help='Amount of generated programs', type=int, default=1)
     args = parser.parse_args()
     
+    res = []
     ## Generator call
-    res = gen_p()
+    for i in range(args.iterations):
+        res.append(gen_p())
     
     ## Printing results
     print(json.dumps(res, sort_keys=True, indent=4))
@@ -126,4 +129,3 @@ if __name__ == "__main__":
     if (args.save):
         with open(args.save, 'w') as f:
             json.dump(res, f)
-    

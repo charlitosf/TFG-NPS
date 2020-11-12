@@ -6,18 +6,26 @@ Created on Thu Nov 12 11:01:40 2020
 """
 import argparse
 import json
+from tensorflow.keras.preprocessing.text import Tokenizer
 
-def JSON2RNN(json):
+
+def JSON2RNN_recurs(json):
     res = []
     if isinstance(json, dict):
         for key in json.keys():
             res.append(str(key))
-            res += JSON2RNN(json[key])
+            res += JSON2RNN_recurs(json[key])
     elif isinstance(json, list):
         for el in json:
-            res += JSON2RNN(el)
+            res += JSON2RNN_recurs(el)
     else:
         res.append(str(json))
+    return res
+
+def JSON2RNN(json):
+    res = []
+    for j in json:
+        res.append(JSON2RNN_recurs(j))
     return res
 
 def RNN2JSON(rnn):
@@ -46,12 +54,17 @@ if __name__ == "__main__":
         else:
             inpt = f.readline()
         f.close()
+        
     if not args.JSONtoRNN:
         inpt = inpt.split()
         inpt = [int(i) for i in inpt]
         
     if args.JSONtoRNN:
         res = JSON2RNN(inpt)
+        print(res)
+        tokenizer = Tokenizer(filters='')
+        tokenizer.fit_on_texts(res)
+        res = tokenizer.texts_to_sequences(res)
     else:
         res = RNN2JSON(inpt)
     

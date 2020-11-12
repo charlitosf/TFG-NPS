@@ -150,8 +150,9 @@ if __name__ == '__main__':
     INPUT = args.input_string
     ## Loading data from input file
     with open(args.file, 'r') as f:
-        p = json.load(f)
+        ps = json.load(f)
     
-    ## Decoding the program
-    res = decode_p(p)
-    print(res)
+    ## Decoding the program (or programs)
+    for p in ps:
+        res = decode_p(p)
+        print(res)
