@@ -8,6 +8,10 @@ import argparse
 import json
 from tensorflow.keras.preprocessing.text import Tokenizer
 
+with open("config.json", 'r') as fp:
+        CONFIG = json.load(fp)
+        fp.close()
+CONFIG = CONFIG['DEFAULT']
 
 def JSON2RNN_recurs(json):
     res = []
@@ -22,20 +26,52 @@ def JSON2RNN_recurs(json):
         res.append(str(json))
     return res
 
-def JSON2RNN(json):
+def JSON2RNN(json, tokenizer):
     res = []
     for j in json:
         res.append(JSON2RNN_recurs(j))
+    print(res)
+    return tokenizer.texts_to_sequences(res)
+    
+
+def RNN2JSON(rnn, tokenizer):
+    print(rnn)
+    programs = tokenizer.sequences_to_texts(rnn)
+    programs = [p.split() for p in programs]
+    res = []
+    for p in programs:
+        actual = {}
+        if p[0] == CONFIG['methods']['concat']:
+            actual[p[0]] = parse_concat_params(p[1:])
+        res.append(actual)
     return res
 
-#def RNN2JSON(rnn):
-    #return str(rnn)
+def parse_concat_params(params):
+    res = []
+    actual = ''
+    actual_method = ''
+    for param in params:
+        if param in CONFIG['methods'].values():
+            
+            if not actual == '':
+                if len(actual[actual_method]) == 1:
+                    actual[actual_method] = actual[actual_method][0]
+                res.append(actual)
+                
+            actual_method = param
+            actual = {
+                    param: []
+                }
+        else:
+            actual[actual_method].append(param)
+    
+    if len(actual[actual_method]) == 1:
+        actual[actual_method] = actual[actual_method][0]
+    res.append(actual)
+    
+    return res
     
 def train_tokenizer(tokenizer):
-    with open("config.json", 'r') as fp:
-        CONFIG = json.load(fp)
-        fp.close()
-    CONFIG = CONFIG['DEFAULT']
     tokenizer.fit_on_texts(CONFIG['methods'].values())
     tokenizer.fit_on_texts(CONFIG['t'])
     tokenizer.fit_on_texts(CONFIG['s'])
@@ -43,6 +79,8 @@ def train_tokenizer(tokenizer):
     negatives = [str(-i - 1) for i in range(CONFIG['MAX_STR_SIZE'])]
     tokenizer.fit_on_texts(positives)
     tokenizer.fit_on_texts(negatives)
+    characters = [list(c) for c in CONFIG['c']]
+    tokenizer.fit_on_texts(characters)
     return tokenizer
 
 def str2bool(v):
@@ -60,29 +98,21 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Program translator JSON - Number Array")
     parser.add_argument('-s', '--save', metavar='FILE', help='Path where the output will be stored')
     parser.add_argument('file', help='Path to input file to be translated')
-    parser.add_argument('JSONtoRNN', type=str2bool, help='True if input file is JSON, False if input file is number array (aka RNN)')
     args = parser.parse_args()
     
-    tokenizer = Tokenizer(filters='', lower=False, oov_token="_")
+    tokenizer = Tokenizer(filters='', lower=False, oov_token="<UNK>")
     tokenizer = train_tokenizer(tokenizer)
     
     with open(args.file, 'r') as f:
         inpt = json.load(f)
         f.close()
         
-    #if not args.JSONtoRNN:
-        #inpt = inpt.split()
-        #inpt = [int(i) for i in inpt]
-        
-    if args.JSONtoRNN:
-        res = JSON2RNN(inpt)
-        print(res)
-        res = tokenizer.texts_to_sequences(res)
+    JSONtoRNN = isinstance(inpt[0], dict)
+    if JSONtoRNN:
+        res = JSON2RNN(inpt, tokenizer)
     else:
-        #res = RNN2JSON(inpt)
-        print(inpt)
-        res = tokenizer.sequences_to_texts(inpt)
-    
+        res = RNN2JSON(inpt, tokenizer)
+        
     
     if args.save is not None:
         with open(args.save, 'w') as f:
