@@ -13,6 +13,22 @@ with open("config.json", 'r') as fp:
         fp.close()
 CONFIG = CONFIG['DEFAULT']
 
+tokenizer = Tokenizer(filters='', lower=False, oov_token="<UNK>")
+
+def train_tokenizer(tokenizer):
+    tokenizer.fit_on_texts(CONFIG['methods'].values())
+    tokenizer.fit_on_texts(CONFIG['t'])
+    tokenizer.fit_on_texts(CONFIG['s'])
+    positives = [str(i) for i in range(CONFIG['MAX_STR_SIZE'])]
+    negatives = [str(-i - 1) for i in range(CONFIG['MAX_STR_SIZE'])]
+    tokenizer.fit_on_texts(positives)
+    tokenizer.fit_on_texts(negatives)
+    characters = [list(c) for c in CONFIG['c']]
+    tokenizer.fit_on_texts(characters)
+    return tokenizer
+
+tokenizer = train_tokenizer(tokenizer)
+
 def JSON2RNN_recurs(json):
     res = []
     if isinstance(json, dict):
@@ -26,7 +42,7 @@ def JSON2RNN_recurs(json):
         res.append(str(json))
     return res
 
-def JSON2RNN(json, tokenizer):
+def JSON2RNN(json):
     res = []
     for j in json:
         res.append(JSON2RNN_recurs(j))
@@ -34,7 +50,7 @@ def JSON2RNN(json, tokenizer):
     return tokenizer.texts_to_sequences(res)
     
 
-def RNN2JSON(rnn, tokenizer):
+def RNN2JSON(rnn):
     print(rnn)
     programs = tokenizer.sequences_to_texts(rnn)
     programs = [p.split() for p in programs]
@@ -71,17 +87,7 @@ def parse_concat_params(params):
     
     return res
     
-def train_tokenizer(tokenizer):
-    tokenizer.fit_on_texts(CONFIG['methods'].values())
-    tokenizer.fit_on_texts(CONFIG['t'])
-    tokenizer.fit_on_texts(CONFIG['s'])
-    positives = [str(i) for i in range(CONFIG['MAX_STR_SIZE'])]
-    negatives = [str(-i - 1) for i in range(CONFIG['MAX_STR_SIZE'])]
-    tokenizer.fit_on_texts(positives)
-    tokenizer.fit_on_texts(negatives)
-    characters = [list(c) for c in CONFIG['c']]
-    tokenizer.fit_on_texts(characters)
-    return tokenizer
+
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -100,8 +106,7 @@ if __name__ == "__main__":
     parser.add_argument('file', help='Path to input file to be translated')
     args = parser.parse_args()
     
-    tokenizer = Tokenizer(filters='', lower=False, oov_token="<UNK>")
-    tokenizer = train_tokenizer(tokenizer)
+    
     
     with open(args.file, 'r') as f:
         inpt = json.load(f)
