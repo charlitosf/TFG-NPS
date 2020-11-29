@@ -67,7 +67,7 @@ def gen_const_str_w():
 
 def gen_const_str_c():
     res = {}
-    res[METHODS['const_str_c']] = gen_character()
+    res[METHODS['const_str_c']] = [gen_character()]
     
     return res
 
@@ -111,7 +111,7 @@ def gen_index():
 
 def gen_word():
     length = range(random.randint(MIN_STR_SIZE, MAX_STR_SIZE))
-    return ''.join([gen_character() for i in length])
+    return [gen_character() for i in length]
 
 def gen_character():
     return random.choice(random.choice(c))

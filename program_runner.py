@@ -100,10 +100,10 @@ def decode_get_token(i_t):
     return options[t](i, INPUT)
 
 def decode_const_str_c(c):
-    return c
+    return ''.join(c)
 
 def decode_const_str_w(w):
-    return w
+    return ''.join(w)
 
 def decode_swap_number(i1, i2, in_str):
     new_str = in_str.split()
@@ -132,11 +132,11 @@ def decode_swap_char(i1, i2, in_str):
 
 def decode_get_number(i, in_str):
     new_str = in_str.split()
-    filtered_str = [[i, x] for i, x in enumerate(new_str) if x.isnumeric()]
+    filtered_str = [x for i, x in enumerate(new_str) if x.isnumeric()]
     return filtered_str[i]
 
 def decode_get_digit(i, in_str):
-    filtered_str = [[i, x] for i, x in enumerate(in_str) if x.isnumeric()]
+    filtered_str = [x for ind, x in enumerate(in_str) if x.isnumeric()]
     return filtered_str[i]
 
 def decode_get_word(i, in_str):
