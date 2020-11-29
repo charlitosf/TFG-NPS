@@ -25,6 +25,13 @@ c = CONFIG['c']
 t = CONFIG['t']
 s = CONFIG['s']
 
+def get_intent_vocabulary():
+    tam_intent_vocabulary = 0
+    for s in CONFIG['c']:
+        for c in s:
+            tam_intent_vocabulary += 1
+    return tam_intent_vocabulary
+
 def gen_p():
     amount_e = random.randint(1, MAX_E_CONCAT)
     res = {

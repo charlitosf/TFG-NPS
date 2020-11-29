@@ -13,9 +13,13 @@ with open("config.json", 'r') as fp:
         fp.close()
 CONFIG = CONFIG['DEFAULT']
 
-tokenizer = Tokenizer(filters='', lower=False, oov_token="<UNK>")
+tokenizer = Tokenizer(filters='',
+                      lower=False,
+                      #oov_token="<UNK>"
+                      )
 
 def train_tokenizer(tokenizer):
+    tokenizer.fit_on_texts(["<EOP>", "<SOP>"])    
     tokenizer.fit_on_texts(CONFIG['methods'].values())
     tokenizer.fit_on_texts(CONFIG['t'])
     tokenizer.fit_on_texts(CONFIG['s'])
@@ -28,6 +32,9 @@ def train_tokenizer(tokenizer):
     return tokenizer
 
 tokenizer = train_tokenizer(tokenizer)
+
+def get_tokenizer():
+    return tokenizer
 
 def JSON2RNN_recurs(json):
     res = []
@@ -46,7 +53,7 @@ def JSON2RNN(json):
     res = []
     for j in json:
         res.append(JSON2RNN_recurs(j))
-    print(res)
+    #print(res)
     return tokenizer.texts_to_sequences(res)
     
 
@@ -114,9 +121,9 @@ if __name__ == "__main__":
         
     JSONtoRNN = isinstance(inpt[0], dict)
     if JSONtoRNN:
-        res = JSON2RNN(inpt, tokenizer)
+        res = JSON2RNN(inpt)
     else:
-        res = RNN2JSON(inpt, tokenizer)
+        res = RNN2JSON(inpt)
         
     
     if args.save is not None:

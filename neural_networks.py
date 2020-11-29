@@ -8,9 +8,7 @@ import tensorflow as tf
 import numpy as np
 
 def generate_model(tam_intent_vocabulary, tam_program_vocabulary):
-    tam_intent_vocabulary = 10
-    tam_program_vocabulary = 5
-    
+   
     input_i   =   tf.keras.layers.Input(shape=(None,))
     embed_i   =   tf.keras.layers.Embedding(input_dim=tam_intent_vocabulary, output_dim=32)(input_i)
     lstm_i_output, lstm_i_h, lstm_i_c    =   tf.keras.layers.LSTM(64, return_state=True)(embed_i)
@@ -38,8 +36,6 @@ def generate_model(tam_intent_vocabulary, tam_program_vocabulary):
 
 
 def generate_attention_model(tam_intent_vocabulary, tam_program_vocabulary):
-    tam_intent_vocabulary = 10
-    tam_program_vocabulary = 50
     
     input_i   =   tf.keras.layers.Input(shape=(None,))
     embed_i   =   tf.keras.layers.Embedding(input_dim=tam_intent_vocabulary, output_dim=64)(input_i)

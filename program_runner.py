@@ -15,16 +15,16 @@ with open("config.json", 'r') as fp:
 CONFIG = CONFIG['DEFAULT']
 METHODS = CONFIG['methods']
 
-def decode_p(p):
+def decode_p(p, INPUT):
     param_list = p[METHODS['concat']]
     res = ''
     
     for param in param_list:
-        res += decode_e(param)
+        res += decode_e(param, INPUT)
         
     return res
 
-def decode_e(e):
+def decode_e(e, INPUT):
     options = {
             METHODS['sub_str']: decode_substr,
             METHODS['to_case']: decode_to_case,
@@ -34,15 +34,15 @@ def decode_e(e):
             METHODS['const_str_w']: decode_const_str_w
         }
     key = list(e.keys())[0]
-    return options[key](e[key])
+    return options[key](e[key], INPUT)
 
-def decode_substr(k1_k2):
+def decode_substr(k1_k2, INPUT):
     k1 = k1_k2[0]
     k2 = k1_k2[1]
     
     return INPUT[k1:k2]
 
-def decode_to_case(s):
+def decode_to_case(s, INPUT):
     options = {
             CONFIG['s'][0]: decode_proper,
             CONFIG['s'][1]: decode_upper,
@@ -51,7 +51,7 @@ def decode_to_case(s):
     
     return options[s](INPUT)
 
-def decode_swap(i1_i2_t):
+def decode_swap(i1_i2_t, INPUT):
     options = {
             CONFIG['t'][0]: decode_swap_number,
             CONFIG['t'][1]: decode_swap_digit,
@@ -86,7 +86,7 @@ def decode_proper(in_str):
     
     return new_str
 
-def decode_get_token(i_t):
+def decode_get_token(i_t, INPUT):
     options = {
             CONFIG['t'][0]: decode_get_number,
             CONFIG['t'][1]: decode_get_digit,
@@ -99,10 +99,10 @@ def decode_get_token(i_t):
     
     return options[t](i, INPUT)
 
-def decode_const_str_c(c):
+def decode_const_str_c(c, INPUT):
     return ''.join(c)
 
-def decode_const_str_w(w):
+def decode_const_str_w(w, INPUT):
     return ''.join(w)
 
 def decode_swap_number(i1, i2, in_str):
@@ -161,5 +161,5 @@ if __name__ == '__main__':
     
     ## Decoding the program (or programs)
     for p in ps:
-        res = decode_p(p)
+        res = decode_p(p, INPUT)
         print(res)
