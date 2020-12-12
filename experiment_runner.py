@@ -11,6 +11,7 @@ import program_translator as pt
 import numpy as np
 import tensorflow as tf
 import json
+import os
 
 print(tf.version.VERSION)
 
@@ -99,35 +100,36 @@ if __name__ == "__main__":
     
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
     
-    BATCH_SIZE = 64
+    BATCH_SIZE = 32
     gen_training = generator(BATCH_SIZE)
     gen_validation = generator(BATCH_SIZE)
     
-    # fails = True
-    # input = "hola6 67 k pasa"
-    # INPUT = np.array(tokenizer_io.texts_to_sequences([list(input)]))
-    # while fails:
-    #     try:
-    #         program = pg.gen_p()
-    #         output = pr.decode_p(program, input)
-    #         fails = False
-    #     except:
-    #         print("Execution failure, generating a new program")
-    # OUTPUT = np.array(tokenizer_io.texts_to_sequences([list(output)]))
-    # translated_program = pt.JSON2RNN([program])[0]
     
-    # INPUT_P = np.array([[tokenizer_program.word_index['<SOP>']] + translated_program])
-    # OUTPUT_P = tf.one_hot(np.array([translated_program + [tokenizer_program.word_index['<EOP>']]]), tam_program_vocabulary)
+    TRAIN = True
     
-    # model.fit(x=[INPUT, OUTPUT, INPUT_P], y=OUTPUT_P, epochs=3)
+    checkpoint_path = "checkpoints/cp-{epoch:04d}.ckpt"
+    checkpointdir = os.path.dirname(checkpoint_path)
     
-    history = model.fit(gen_training,
-              steps_per_epoch=32,
-              validation_data=gen_validation,
-              validation_steps=32,
-              epochs=3,
-              # verbose=2
-              )
+    saving_frequency = 2 # epochs
     
-    # print(next(generator(2)))
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                     save_weights_only=True,
+                                                     verbose=1,
+                                                     save_freq=saving_frequency*BATCH_SIZE)
+    
+    model.save_weights(checkpoint_path.format(epoch=0))
+    
+    
+    if TRAIN:
+        history = model.fit(gen_training,
+                  steps_per_epoch=32,
+                  validation_data=gen_validation,
+                  validation_steps=32,
+                  epochs=10,
+                  callbacks=[cp_callback]
+                  )
+    else:
+        latest = tf.train.latest_checkpoint(checkpointdir)
+        model.load_weights(latest)
+    
     
