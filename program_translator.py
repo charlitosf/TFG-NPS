@@ -19,7 +19,7 @@ tokenizer = Tokenizer(filters='',
                       )
 
 def train_tokenizer(tokenizer):
-    tokenizer.fit_on_texts(["<EOP>", "<SOP>"])    
+    tokenizer.fit_on_texts(["<EOP>", "<SOP>"])
     tokenizer.fit_on_texts(CONFIG['methods'].values())
     tokenizer.fit_on_texts(CONFIG['t'])
     tokenizer.fit_on_texts(CONFIG['s'])
