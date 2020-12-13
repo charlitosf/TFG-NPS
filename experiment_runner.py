@@ -12,6 +12,7 @@ import numpy as np
 import tensorflow as tf
 import json
 import os
+import argparse
 
 print(tf.version.VERSION)
 
@@ -88,8 +89,25 @@ def generator(tam_lote = 32):
                 O_PROGRAMS[ idx_op ][ idx_c ][ o_programs[ idx_op ][ idx_c ] ] = 1
         
         yield [I_WORDS, O_WORDS, I_PROGRAMS], O_PROGRAMS
+        
+
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description="Experiment runner")
+    parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
+    args = parser.parse_args()
+    
+    
     tokenizer_program = pt.get_tokenizer()
     char_to_int_program = tokenizer_program.word_index
     tam_program_vocabulary = len(tokenizer_program.word_index) + 1
@@ -105,7 +123,7 @@ if __name__ == "__main__":
     gen_validation = generator(BATCH_SIZE)
     
     
-    TRAIN = True
+    TRAIN = args.train
     
     checkpoint_path = "checkpoints/cp-{epoch:04d}.ckpt"
     checkpointdir = os.path.dirname(checkpoint_path)
