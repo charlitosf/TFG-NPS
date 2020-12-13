@@ -13,8 +13,11 @@ import tensorflow as tf
 import json
 import os
 import argparse
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
-print(tf.version.VERSION)
+print(f"Tensorflow version: {tf.version.VERSION}")
+print(f"GPU found: {len(tf.config.experimental.list_physical_devices('GPU')) != 0}")
 
 from tensorflow.keras.preprocessing.text import Tokenizer
 
@@ -35,6 +38,23 @@ def getIOtokenizer():
     tokenizer.fit_on_texts(characters)
     return tokenizer
 
+"""
+Función generadora de los datos de la red neuronal
+
+Genera lotes de tamaño tam_lote
+
+- Por cada elemento del lote:
+  - Genera una string como input
+  - Hasta que funcione:
+    - Genera un programa
+    - Ejecuta el programa para obtener la string de output
+  - Traduce el programa finalmente generado (el primero que funcione) a array de enteros y le añade un <EOP> al final
+- Genera un lote de strings de entrada del tamaño de la string de entrada más larga generada
+- Genera un lote de strings de salida del tamaño de la string de salida más larga generada
+- Genera un lote de programas del tamaño del programa más largo generado, traducido a one-hot
+- Genera un lote del mismo tamaño que el anterior (sin traducir a one-hot) que empieza con <SOP> y el resto ceros
+- Devuelve un vector con los lotes de strings de entrada, salida y el "programa" de entrada (la <SOP> y los ceros), junto al lote de programas de salida
+"""
 def generator(tam_lote = 32):
     while True:
         i_words = []
@@ -117,37 +137,56 @@ if __name__ == "__main__":
     tam_intent_vocabulary = len(tokenizer_io.word_index) + 1
     
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
+    EXAMPLES_PER_EPOCH = 4096
+    EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / 8)
+    BATCH_SIZE = 64
     
-    BATCH_SIZE = 32
+    
+    
     gen_training = generator(BATCH_SIZE)
     gen_validation = generator(BATCH_SIZE)
     
+    steps_per_epoch = int(EXAMPLES_PER_EPOCH / BATCH_SIZE)
+    validation_steps = int(EXAMPLES_PER_EPOCH_VALIDATION / BATCH_SIZE)
     
     TRAIN = args.train
     
     checkpoint_path = "checkpoints/cp-{epoch:04d}.ckpt"
     checkpointdir = os.path.dirname(checkpoint_path)
     
-    saving_frequency = 2 # epochs
+    SAVING_FREQUENCY = 10 # epochs
     
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
                                                      verbose=1,
-                                                     save_freq=saving_frequency*BATCH_SIZE)
+                                                     save_freq=SAVING_FREQUENCY*steps_per_epoch)
     
     model.save_weights(checkpoint_path.format(epoch=0))
     
     
     if TRAIN:
+        EPOCHS = 20
         history = model.fit(gen_training,
-                  steps_per_epoch=32,
+                  steps_per_epoch=steps_per_epoch,
                   validation_data=gen_validation,
-                  validation_steps=32,
-                  epochs=10,
-                  callbacks=[cp_callback]
+                  validation_steps=validation_steps,
+                  epochs=EPOCHS,
+                  # callbacks=[cp_callback]
                   )
+        
+        loss = history.history['loss']
+        val_loss = history.history['val_loss']
+        epochs_list = range(1, EPOCHS + 1)
+        
+        fix, ax = plt.subplots()
+        ax.plot(epochs_list, loss, label='Loss')
+        ax.plot(epochs_list, val_loss, label='Validation Loss')
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax.legend()
+        ax.set_title("Evolution of epochs")
     else:
         latest = tf.train.latest_checkpoint(checkpointdir)
         model.load_weights(latest)
+    
     
     
