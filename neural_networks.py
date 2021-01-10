@@ -31,7 +31,7 @@ def generate_model(tam_intent_vocabulary, tam_program_vocabulary):
     
     model = tf.keras.Model(inputs=[input_i,input_o, input_p], outputs=token_classifier)
     
-    model.compile(optimizer='sgd',loss='categorical_crossentropy')
+    model.compile(optimizer='sgd',loss='categorical_crossentropy', metrics=[tf.keras.metrics.Accuracy()])
     return model
 
 
@@ -62,7 +62,7 @@ def generate_attention_model(tam_intent_vocabulary, tam_program_vocabulary):
     
     token_classifier = tf.keras.layers.Dense(tam_program_vocabulary, activation='softmax')(attention_o2p)
     model = tf.keras.Model(inputs=[input_i,input_o, input_p], outputs=token_classifier)
-    model.compile(optimizer='sgd',loss='categorical_crossentropy')
+    model.compile(optimizer='sgd',loss='categorical_crossentropy', metrics=[tf.keras.metrics.Accuracy()])
     return model
 
 if __name__ == "__main__":

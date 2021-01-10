@@ -137,7 +137,7 @@ if __name__ == "__main__":
     tam_intent_vocabulary = len(tokenizer_io.word_index) + 1
     
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
-    EXAMPLES_PER_EPOCH = 4096
+    EXAMPLES_PER_EPOCH = 2 ** 15
     EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / 8)
     BATCH_SIZE = 64
     
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     
     
     if TRAIN:
-        EPOCHS = 20
+        EPOCHS = 50
         history = model.fit(gen_training,
                   steps_per_epoch=steps_per_epoch,
                   validation_data=gen_validation,
