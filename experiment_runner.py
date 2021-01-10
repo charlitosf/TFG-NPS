@@ -15,6 +15,8 @@ import os
 import argparse
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
+import random
+#random.seed(1235)
 
 print(f"Tensorflow version: {tf.version.VERSION}")
 print(f"GPU found: {len(tf.config.experimental.list_physical_devices('GPU')) != 0}")
@@ -61,30 +63,47 @@ def generator(tam_lote = 32):
         o_words = []
         
         o_programs = []
-        
-        for _ in range(tam_lote):
-            i_word = pg.gen_word()
+        i = 0
+        while i < tam_lote:
+            amount_inputs = random.randint(CONFIG['MIN_INPUTS_PER_PROGRAM'], CONFIG['MAX_INPUTS_PER_PROGRAM'])
+            if i + amount_inputs >= tam_lote:
+                amount_inputs = tam_lote - i
+            
             fails = True
             while fails:
-                try:
-                    o_program = pg.gen_p()
-                    o_word = pr.decode_p(o_program, ''.join(i_word))
+                i_words_program = []
+                o_words_program = []
+                j = 0
+                o_program = pg.gen_p()
+                fails = False
+                while j < amount_inputs and not fails:
+                    try:
+                        i_word = pg.gen_word()
+                        o_word = list(pr.decode_p(o_program, ''.join(i_word)))
+                    except:
+                        fails = True
+                        #print("Execution failure, generating a new program")
+                    if not fails:
+                        i_words_program.append(i_word)
+                        o_words_program.append(o_word)
                     
-                    fails = False
-                except:
-                    #print("Execution failure, generating a new program")
-                    pass
-            i_words.append(i_word)
-            o_words.append(list(o_word))
+                        j += 1
+                        
+                        
+            
+            i += j
+            i_words += i_words_program
+            o_words += o_words_program
+            
             translated_program = pt.JSON2RNN([o_program])[0]
-            o_programs.append(translated_program + [char_to_int_program['<EOP>']])
+            for _ in range(amount_inputs):
+                o_programs.append(translated_program + [char_to_int_program['<EOP>']])
             
-            
+        
         max_longitud_iwords = max([len(word) for word in i_words])
         max_longitud_owords = max([len(word) for word in o_words])
         
         max_longitud_oprograms = max([len(word) for word in o_programs])
-        
         
         
         I_WORDS = np.zeros((tam_lote, max_longitud_iwords), dtype=np.int32)
@@ -120,21 +139,10 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-
-if __name__ == "__main__":
+        
+        
+def getModel(train = True):     
     
-    parser = argparse.ArgumentParser(description="Experiment runner")
-    parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
-    args = parser.parse_args()
-    
-    
-    tokenizer_program = pt.get_tokenizer()
-    char_to_int_program = tokenizer_program.word_index
-    tam_program_vocabulary = len(tokenizer_program.word_index) + 1
-    
-    tokenizer_io = getIOtokenizer()
-    char_to_int_intent = tokenizer_io.word_index
-    tam_intent_vocabulary = len(tokenizer_io.word_index) + 1
     
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
     EXAMPLES_PER_EPOCH = 2 ** 15
@@ -149,8 +157,6 @@ if __name__ == "__main__":
     steps_per_epoch = int(EXAMPLES_PER_EPOCH / BATCH_SIZE)
     validation_steps = int(EXAMPLES_PER_EPOCH_VALIDATION / BATCH_SIZE)
     
-    TRAIN = args.train
-    
     checkpoint_path = "checkpoints/cp-{epoch:04d}.ckpt"
     checkpointdir = os.path.dirname(checkpoint_path)
     
@@ -164,8 +170,8 @@ if __name__ == "__main__":
     model.save_weights(checkpoint_path.format(epoch=0))
     
     
-    if TRAIN:
-        EPOCHS = 50
+    if train:
+        EPOCHS = 10
         history = model.fit(gen_training,
                   steps_per_epoch=steps_per_epoch,
                   validation_data=gen_validation,
@@ -188,5 +194,21 @@ if __name__ == "__main__":
         latest = tf.train.latest_checkpoint(checkpointdir)
         model.load_weights(latest)
     
+    return model
+
+tokenizer_program = pt.get_tokenizer()
+char_to_int_program = tokenizer_program.word_index
+tam_program_vocabulary = len(tokenizer_program.word_index) + 1
+
+tokenizer_io = getIOtokenizer()
+char_to_int_intent = tokenizer_io.word_index
+tam_intent_vocabulary = len(tokenizer_io.word_index) + 1
+
+if __name__ == "__main__":
     
+    parser = argparse.ArgumentParser(description="Experiment runner")
+    parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
+    args = parser.parse_args()
+    
+    getModel(args.train)
     
