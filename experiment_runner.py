@@ -57,6 +57,14 @@ Genera lotes de tamaño tam_lote
 - Genera un lote del mismo tamaño que el anterior (sin traducir a one-hot) que empieza con <SOP> y el resto ceros
 - Devuelve un vector con los lotes de strings de entrada, salida y el "programa" de entrada (la <SOP> y los ceros), junto al lote de programas de salida
 """
+
+def translate_wordList(wordlist, char_to_int, result):
+    for idx, w in enumerate(wordlist):
+            for idx_c, c in enumerate(w):
+                result[ idx ][ idx_c ] = char_to_int[c]
+    return result
+    
+    
 def generator(tam_lote = 32):
     while True:
         i_words = []
@@ -112,13 +120,9 @@ def generator(tam_lote = 32):
         
         O_PROGRAMS = np.zeros((tam_lote, max_longitud_oprograms, tam_program_vocabulary), dtype=np.int32)
         
-        for idx_iw, w in enumerate(i_words):
-            for idx_c, c in enumerate(w):
-                I_WORDS[ idx_iw ][ idx_c ] = char_to_int_intent[c]
+        I_WORDS = translate_wordList(i_words, char_to_int_intent, I_WORDS)
         
-        for idx_ow, w in enumerate(o_words):
-            for idx_c, c in enumerate(w):
-                O_WORDS[ idx_ow ][ idx_c ] = char_to_int_intent[c]
+        O_WORDS = translate_wordList(o_words, char_to_int_intent, O_WORDS)
         
         for idx_ip, p in enumerate(I_PROGRAMS):
             I_PROGRAMS[ idx_ip ][ 0 ] = char_to_int_program['<SOP>']
@@ -128,7 +132,7 @@ def generator(tam_lote = 32):
                 O_PROGRAMS[ idx_op ][ idx_c ][ o_programs[ idx_op ][ idx_c ] ] = 1
         
         yield [I_WORDS, O_WORDS, I_PROGRAMS], O_PROGRAMS
-        
+
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -140,14 +144,21 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
         
-        
-def getModel(train = True):     
+def getParser(description):
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
+    parser.add_argument('--batch_size', type=int, help='Batch size used for the model')
+    parser.add_argument('--evolution_graph', action='store_true', help='Set for printing a graph with the evolution of the loss trhought the training')
+    parser.add_argument('--epochs', type=int, help='Amount of epochs to run when training')
+    return parser
+
+def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, epochs = 10, saving_frequency = 10, evolution_graph = True):
     
     
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
-    EXAMPLES_PER_EPOCH = 2 ** 15
-    EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / 8)
-    BATCH_SIZE = 64
+    EXAMPLES_PER_EPOCH = examples_per_epoch
+    EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / validation_ratio)
+    BATCH_SIZE = batch_size
     
     
     
@@ -160,7 +171,7 @@ def getModel(train = True):
     checkpoint_path = "checkpoints/cp-{epoch:04d}.ckpt"
     checkpointdir = os.path.dirname(checkpoint_path)
     
-    SAVING_FREQUENCY = 10 # epochs
+    SAVING_FREQUENCY = saving_frequency # epochs
     
     cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                      save_weights_only=True,
@@ -171,7 +182,7 @@ def getModel(train = True):
     
     
     if train:
-        EPOCHS = 10
+        EPOCHS = epochs
         history = model.fit(gen_training,
                   steps_per_epoch=steps_per_epoch,
                   validation_data=gen_validation,
@@ -184,12 +195,13 @@ def getModel(train = True):
         val_loss = history.history['val_loss']
         epochs_list = range(1, EPOCHS + 1)
         
-        fix, ax = plt.subplots()
-        ax.plot(epochs_list, loss, label='Loss')
-        ax.plot(epochs_list, val_loss, label='Validation Loss')
-        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.legend()
-        ax.set_title("Evolution of epochs")
+        if evolution_graph:
+            fix, ax = plt.subplots()
+            ax.plot(epochs_list, loss, label='Loss')
+            ax.plot(epochs_list, val_loss, label='Validation Loss')
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.legend()
+            ax.set_title("Evolution of epochs")
     else:
         latest = tf.train.latest_checkpoint(checkpointdir)
         model.load_weights(latest)
@@ -206,9 +218,8 @@ tam_intent_vocabulary = len(tokenizer_io.word_index) + 1
 
 if __name__ == "__main__":
     
-    parser = argparse.ArgumentParser(description="Experiment runner")
-    parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
+    parser = getParser("Experiment runner")
     args = parser.parse_args()
     
-    getModel(args.train)
+    getModel(args.train, examples_per_epoch=2 ** 15, batch_size=args.batch_size, epochs=args.epochs, evolution_graph=args.evolution_graph)
     
