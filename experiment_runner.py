@@ -147,20 +147,18 @@ def str2bool(v):
 def getParser(description):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
-    parser.add_argument('--batch_size', type=int, help='Batch size used for the model')
+    parser.add_argument('--batch_size', type=int, default=64, help='Batch size used for the model')
     parser.add_argument('--evolution_graph', action='store_true', help='Set for printing a graph with the evolution of the loss trhought the training')
-    parser.add_argument('--epochs', type=int, help='Amount of epochs to run when training')
+    parser.add_argument('--epochs', type=int, default=10, help='Amount of epochs to run when training')
+    parser.add_argument('--saving_frequency', type=int, default=10, help='Frequency (in epochs) in which a checkpoint will be saved')
     return parser
 
-def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, epochs = 10, saving_frequency = 10, evolution_graph = True):
-    
-    
+
+def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, epochs = 10, saving_frequency = 10, evolution_graph = True):   
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
     EXAMPLES_PER_EPOCH = examples_per_epoch
     EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / validation_ratio)
     BATCH_SIZE = batch_size
-    
-    
     
     gen_training = generator(BATCH_SIZE)
     gen_validation = generator(BATCH_SIZE)
@@ -180,7 +178,6 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     
     model.save_weights(checkpoint_path.format(epoch=0))
     
-    
     if train:
         EPOCHS = epochs
         history = model.fit(gen_training,
@@ -188,7 +185,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                   validation_data=gen_validation,
                   validation_steps=validation_steps,
                   epochs=EPOCHS,
-                  # callbacks=[cp_callback]
+                  callbacks=[cp_callback]
                   )
         
         loss = history.history['loss']
@@ -221,5 +218,5 @@ if __name__ == "__main__":
     parser = getParser("Experiment runner")
     args = parser.parse_args()
     
-    getModel(args.train, examples_per_epoch=2 ** 15, batch_size=args.batch_size, epochs=args.epochs, evolution_graph=args.evolution_graph)
+    getModel(args.train, examples_per_epoch=2 ** 15, batch_size=args.batch_size, epochs=args.epochs, evolution_graph=args.evolution_graph, saving_frequency=args.saving_frequency)
     

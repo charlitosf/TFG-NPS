@@ -58,7 +58,6 @@ def JSON2RNN(json):
     
 
 def RNN2JSON(rnn):
-    print(rnn)
     programs = tokenizer.sequences_to_texts(rnn)
     programs = [p.split() for p in programs]
     res = []
