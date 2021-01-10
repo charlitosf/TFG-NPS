@@ -70,7 +70,7 @@ if __name__ == "__main__":
         
         prediction = model([I_WORD, O_WORD, INPUT_PROGRAM])
 
-        prediction = tf.map_fn(fn=lambda values: max(range(len(values)), key=values.__getitem__), elems=prediction[0]).numpy().astype('int32')
+        prediction = tf.map_fn(fn=lambda values: np.argmax(values.numpy()), elems=prediction[0]).numpy().astype('int32')
         
         prediction = cut_by_eop(prediction)
         
