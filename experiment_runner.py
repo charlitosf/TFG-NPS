@@ -149,12 +149,23 @@ def getParser(description):
     parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size used for the model')
     parser.add_argument('--evolution_graph', action='store_true', help='Set for printing a graph with the evolution of the loss trhought the training')
-    parser.add_argument('--epochs', type=int, default=10, help='Amount of epochs to run when training')
+    parser.add_argument('--total_epochs', type=int, default=20, help='Total amount of epochs to run when training')
+    parser.add_argument('--epochs_per_superepoch', type=int, default=10, help='Amount of epochs for each superepoch (these are actual keras epochs)')
     parser.add_argument('--saving_frequency', type=int, default=10, help='Frequency (in epochs) in which a checkpoint will be saved')
+    parser.add_argument('--tests_per_superepoch', type=int, default=1, help='Amount of examples passed to the network for each superepoch (for testing purposes)')
     return parser
 
+def cut_by_eop(s):
+    for idx, n in enumerate(s):
+        if int_to_char_program[n] == '<EOP>':
+            return s[:idx]
+    return s
 
-def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, epochs = 10, saving_frequency = 10, evolution_graph = True):   
+def toChar(l):
+    return [int_to_char_program[c] for c in l]
+
+def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, total_epochs = 20,
+             epochs_per_superepoch = 10, saving_frequency = 10, evolution_graph = True, tests_per_superepoch = 0):
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
     EXAMPLES_PER_EPOCH = examples_per_epoch
     EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / validation_ratio)
@@ -179,26 +190,55 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     model.save_weights(checkpoint_path.format(epoch=0))
     
     if train:
-        EPOCHS = epochs
-        history = model.fit(gen_training,
-                  steps_per_epoch=steps_per_epoch,
-                  validation_data=gen_validation,
-                  validation_steps=validation_steps,
-                  epochs=EPOCHS,
-                  callbacks=[cp_callback]
-                  )
-        
-        loss = history.history['loss']
-        val_loss = history.history['val_loss']
-        epochs_list = range(1, EPOCHS + 1)
-        
-        if evolution_graph:
-            fix, ax = plt.subplots()
-            ax.plot(epochs_list, loss, label='Loss')
-            ax.plot(epochs_list, val_loss, label='Validation Loss')
-            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-            ax.legend()
-            ax.set_title("Evolution of epochs")
+        loss = []
+        val_loss = []
+        for superepoch in range(int(total_epochs/epochs_per_superepoch)):
+            print(f'\nSuperepoch {superepoch + 1}:\n')
+            history = model.fit(gen_training,
+                      steps_per_epoch=steps_per_epoch,
+                      validation_data=gen_validation,
+                      validation_steps=validation_steps,
+                      epochs=epochs_per_superepoch,
+                      callbacks=[cp_callback]
+                      )
+
+            loss += history.history['loss']
+            val_loss += history.history['val_loss']
+            epochs_list = range(1, (superepoch + 1) * epochs_per_superepoch + 1)
+            if evolution_graph:
+                fix, ax = plt.subplots()
+                ax.plot(epochs_list, loss, label='Loss')
+                ax.plot(epochs_list, val_loss, label='Validation Loss')
+                ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+                ax.legend()
+                ax.set_title("Evolution of epochs")
+                plt.show()
+            
+            g = generator(tests_per_superepoch)
+            inputs, output = next(g)
+            
+            inputs[2] = np.array(list(map(lambda values: values[0] + [0] * CONFIG['MAX_PROGRAM_SIZE'], inputs[2])))
+            
+            predictions = model(inputs)
+            for i, prediction_ in enumerate(predictions):
+                print('\nIntent:')
+                print(f'Input: "{"".join([int_to_char_intent[tok] for tok in inputs[0][i]])}"')
+                print(f'Output: "{"".join([int_to_char_intent[tok] for tok in inputs[1][i]])}"\n')
+                
+                prediction = tf.map_fn(fn=lambda values: np.argmax(values.numpy()), elems=prediction_).numpy().astype('int32')
+                prediction = cut_by_eop(prediction)
+                predictionChars = toChar(prediction)
+                
+                expectation = tf.map_fn(fn=lambda values: np.argmax(values.numpy()), elems=output[i]).numpy().astype('int32')
+                expectation = cut_by_eop(expectation)
+                expectation = pt.RNN2JSON([expectation])[0]
+                
+                print('Expected output program:')
+                print(expectation)
+                print('Actual output program:')
+                print(predictionChars)
+                
+            
     else:
         latest = tf.train.latest_checkpoint(checkpointdir)
         model.load_weights(latest)
@@ -217,6 +257,17 @@ if __name__ == "__main__":
     
     parser = getParser("Experiment runner")
     args = parser.parse_args()
+    int_to_char_program = tokenizer_program.index_word
+    int_to_char_intent = tokenizer_io.index_word
     
-    getModel(args.train, examples_per_epoch=2 ** 15, batch_size=args.batch_size, epochs=args.epochs, evolution_graph=args.evolution_graph, saving_frequency=args.saving_frequency)
+    getModel(
+        args.train,
+        examples_per_epoch=2 ** 15,
+        batch_size=args.batch_size,
+        total_epochs=args.total_epochs,
+        epochs_per_superepoch=args.epochs_per_superepoch,
+        evolution_graph=args.evolution_graph,
+        saving_frequency=args.saving_frequency,
+        tests_per_superepoch=args.tests_per_superepoch
+    )
     
