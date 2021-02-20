@@ -193,7 +193,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
         loss = []
         val_loss = []
         for superepoch in range(int(total_epochs/epochs_per_superepoch)):
-            print(f'\nSuperepoch {superepoch + 1}:\n')
+            print(f'\nSuperepoch {superepoch + 1}/{int(total_epochs/epochs_per_superepoch)}:\n')
             history = model.fit(gen_training,
                       steps_per_epoch=steps_per_epoch,
                       validation_data=gen_validation,
