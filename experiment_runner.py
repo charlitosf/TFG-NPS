@@ -147,12 +147,14 @@ def str2bool(v):
 def getParser(description):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
+    parser.add_argument('--same_data_for_validation', action='store_true', help='Instead of generating (or using) different data between the training and validation datasets, use the same')
     parser.add_argument('--batch_size', type=int, default=64, help='Batch size used for the model')
     parser.add_argument('--evolution_graph', action='store_true', help='Set for printing a graph with the evolution of the loss trhought the training')
     parser.add_argument('--total_epochs', type=int, default=20, help='Total amount of epochs to run when training')
     parser.add_argument('--epochs_per_superepoch', type=int, default=10, help='Amount of epochs for each superepoch (these are actual keras epochs)')
     parser.add_argument('--saving_frequency', type=int, default=10, help='Frequency (in epochs) in which a checkpoint will be saved')
     parser.add_argument('--tests_per_superepoch', type=int, default=1, help='Amount of examples passed to the network for each superepoch (for testing purposes)')
+    parser.add_argument('--use_generator', action='store_true', help='Use generator a generator function for training instead of a whole dataset')
     return parser
 
 def cut_by_eop(s):
@@ -165,7 +167,8 @@ def toChar(l):
     return [int_to_char_program[c] for c in l]
 
 def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, total_epochs = 20,
-             epochs_per_superepoch = 10, saving_frequency = 10, evolution_graph = True, tests_per_superepoch = 0):
+             epochs_per_superepoch = 10, saving_frequency = 10, evolution_graph = True, tests_per_superepoch = 0,
+             use_generator = True, same_data_for_validation = False):
     model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
     EXAMPLES_PER_EPOCH = examples_per_epoch
     EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / validation_ratio)
@@ -187,23 +190,56 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                                                      verbose=1,
                                                      save_freq=SAVING_FREQUENCY*steps_per_epoch)
     
+    
     model.save_weights(checkpoint_path.format(epoch=0))
     
     if train:
         loss = []
         val_loss = []
+        if not use_generator:
+            dataset_input, dataset_output = next(generator(steps_per_epoch * BATCH_SIZE))
+        if same_data_for_validation:
+            same_data_generator = generator(steps_per_epoch * BATCH_SIZE)
         for superepoch in range(int(total_epochs/epochs_per_superepoch)):
             print(f'\nSuperepoch {superepoch + 1}/{int(total_epochs/epochs_per_superepoch)}:\n')
-            history = model.fit(gen_training,
-                      steps_per_epoch=steps_per_epoch,
-                      validation_data=gen_validation,
-                      validation_steps=validation_steps,
-                      epochs=epochs_per_superepoch,
-                      callbacks=[cp_callback]
-                      )
-
-            loss += history.history['loss']
-            val_loss += history.history['val_loss']
+            if use_generator and not same_data_for_validation:
+                history = model.fit(gen_training,
+                          steps_per_epoch=steps_per_epoch,
+                          validation_data=gen_validation,
+                          validation_steps=validation_steps,
+                          epochs=epochs_per_superepoch,
+                          callbacks=[cp_callback]
+                          )
+            elif use_generator and same_data_for_validation:
+                for _ in range(epochs_per_superepoch):
+                    data_in, data_out = next(same_data_generator)
+                    history = model.fit(x=data_in,
+                              y=data_out,
+                              batch_size=BATCH_SIZE,
+                              validation_data=(data_in, data_out),
+                              callbacks=[cp_callback]
+                              )
+                    loss += history.history['loss']
+                    val_loss += history.history['val_loss']
+            elif not same_data_for_validation:
+                history = model.fit(x=dataset_input,
+                          y=dataset_output,
+                          batch_size=BATCH_SIZE,
+                          epochs=epochs_per_superepoch,
+                          validation_split=0.1,
+                          callbacks=[cp_callback]
+                          )
+            else:
+                history = model.fit(x=dataset_input,
+                          y=dataset_output,
+                          batch_size=BATCH_SIZE,
+                          epochs=epochs_per_superepoch,
+                          validation_data=(dataset_input, dataset_output),
+                          callbacks=[cp_callback]
+                          )
+            if not (same_data_for_validation and use_generator):
+                loss += history.history['loss']
+                val_loss += history.history['val_loss']
             epochs_list = range(1, (superepoch + 1) * epochs_per_superepoch + 1)
             if evolution_graph:
                 fix, ax = plt.subplots()
@@ -268,6 +304,8 @@ if __name__ == "__main__":
         epochs_per_superepoch=args.epochs_per_superepoch,
         evolution_graph=args.evolution_graph,
         saving_frequency=args.saving_frequency,
-        tests_per_superepoch=args.tests_per_superepoch
+        tests_per_superepoch=args.tests_per_superepoch,
+        use_generator=args.use_generator,
+        same_data_for_validation=args.same_data_for_validation
     )
     
