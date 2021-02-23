@@ -45,23 +45,29 @@ def generate_attention_model(tam_intent_vocabulary, tam_program_vocabulary):
     
     input_o   =   tf.keras.layers.Input(shape=(None,))
     embed_o   =   tf.keras.layers.Embedding(input_dim=tam_intent_vocabulary, output_dim=64)(input_o)
-    lstm_o_output, lstm_o_h, lstm_o_c     =   tf.keras.layers.LSTM(64, return_sequences=True, return_state=True)(embed_o,initial_state=[lstm_i_h, lstm_i_c])
+    attention_o2i = tf.keras.layers.Attention()([embed_o, lstm_i_output])
+    
+    # attention_o2i.shape == [batch_size, longitud secuencia output, 64]
+   
+    concat_o = tf.keras.layers.Concatenate()([embed_o, attention_o2i])
+    lstm_o_output, lstm_o_h, lstm_o_c     =   tf.keras.layers.LSTM(64, return_sequences=True, return_state=True)(concat_o, initial_state=[lstm_i_h, lstm_i_c])
     
     # lstm_o_ouput.shape == [batch_size, longitud secuencia output, 64]
     
-    attention_i2o = tf.keras.layers.Attention()([lstm_o_output,lstm_i_output])
-    
-    # attention_i2o.shape == [batch_size, longitud secuencia output, 64]
-    
     input_p   =   tf.keras.layers.Input(shape=(None,))
-    embed_p   =   tf.keras.layers.Embedding(input_dim=tam_program_vocabulary, output_dim=32)(input_p)
-    lstm_p_output, lstm_o_h, lstm_o_c     =   tf.keras.layers.LSTM(64, return_sequences=True, return_state=True)(embed_p,initial_state=[lstm_o_h, lstm_o_c])
+    embed_p   =   tf.keras.layers.Embedding(input_dim=tam_program_vocabulary, output_dim=64)(input_p)
     
-    # attention_o2p = tf.keras.layers.Attention()([lstm_p_output,lstm_o_output])
-    attention_o2p = tf.keras.layers.Attention()([lstm_p_output,attention_i2o])
+    # DOUBLE ATTENTION
     
-    token_classifier = tf.keras.layers.Dense(tam_program_vocabulary, activation='softmax')(attention_o2p)
-    model = tf.keras.Model(inputs=[input_i,input_o, input_p], outputs=token_classifier)
+    attention_p2o = tf.keras.layers.Attention()([embed_p, lstm_o_output])
+    attention_p2i = tf.keras.layers.Attention()([attention_p2o, lstm_i_output])
+    concat_p = tf.keras.layers.Concatenate()([embed_p, attention_p2i])
+    lstm_p_output =   tf.keras.layers.LSTM(64, return_sequences=True)(concat_p, initial_state=[lstm_o_h, lstm_o_c])
+    
+    # lstm_p_output.shape == [batch_size, longitud secuencia program, 64]
+    
+    token_classifier = tf.keras.layers.Dense(tam_program_vocabulary, activation='softmax')(lstm_p_output)
+    model = tf.keras.Model(inputs=[input_i, input_o, input_p], outputs=token_classifier)
     model.compile(optimizer='sgd',loss='categorical_crossentropy', metrics=[tf.keras.metrics.Accuracy()])
     return model
 
