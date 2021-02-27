@@ -40,6 +40,29 @@ def getIOtokenizer():
     tokenizer.fit_on_texts(characters)
     return tokenizer
 
+def integer_list2string(integer_list):
+    return "".join([int_to_char_intent[tok] for tok in integer_list])
+
+def test_model(model, generator):
+    inputs, output = next(generator)
+    
+    inputs[2] = np.array(list(map(lambda values: values[0] + [0] * CONFIG['MAX_PROGRAM_SIZE'], inputs[2])))
+    
+    predictions = model(inputs)
+    expectations = pt.RNN2JSON(output)
+    prediction_chars = pt.rnn2list(predictions)
+    
+    for i in range(predictions.shape[0]):
+        print('\nIntent:')
+        print(f'Input: "{integer_list2string(inputs[0][i])}"')
+        print(f'Output: "{integer_list2string(inputs[1][i])}"\n')
+        
+        
+        print('Expected output program:')
+        print(expectations[i])
+        print('Actual output program:')
+        print(prediction_chars[i])
+
 """
 Función generadora de los datos de la red neuronal
 
@@ -148,7 +171,7 @@ def getParser(description):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
     parser.add_argument('--same_data_for_validation', action='store_true', help='Instead of generating (or using) different data between the training and validation datasets, use the same')
-    parser.add_argument('--batch_size', type=int, default=64, help='Batch size used for the model')
+    parser.add_argument('--batch_size', type=int, default=256, help='Batch size used for the model')
     parser.add_argument('--evolution_graph', action='store_true', help='Set for printing a graph with the evolution of the loss trhought the training')
     parser.add_argument('--total_epochs', type=int, default=20, help='Total amount of epochs to run when training')
     parser.add_argument('--epochs_per_superepoch', type=int, default=10, help='Amount of epochs for each superepoch (these are actual keras epochs)')
@@ -187,10 +210,13 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     if train:
         loss = []
         val_loss = []
+        testing_generator = generator(tests_per_superepoch)
         if not use_generator:
             dataset_input, dataset_output = next(generator(steps_per_epoch * BATCH_SIZE))
+            
         if same_data_for_validation:
             same_data_generator = generator(steps_per_epoch * BATCH_SIZE)
+            
         for superepoch in range(int(total_epochs/epochs_per_superepoch)):
             print(f'\nSuperepoch {superepoch + 1}/{int(total_epochs/epochs_per_superepoch)}:\n')
             if use_generator and not same_data_for_validation:
@@ -201,7 +227,12 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           epochs=epochs_per_superepoch,
                           callbacks=[cp_callback]
                           )
+                superepoch_loss = history.history['loss']
+                superepoch_val_loss = history.history['val_loss']
+                
             elif use_generator and same_data_for_validation:
+                superepoch_loss = []
+                superepoch_val_loss = []
                 for _ in range(epochs_per_superepoch):
                     data_in, data_out = next(same_data_generator)
                     history = model.fit(x=data_in,
@@ -210,8 +241,9 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                               validation_data=(data_in, data_out),
                               callbacks=[cp_callback]
                               )
-                    loss += history.history['loss']
-                    val_loss += history.history['val_loss']
+                    superepoch_loss += history.history['loss']
+                    superepoch_val_loss += history.history['val_loss']
+                    
             elif not same_data_for_validation:
                 history = model.fit(x=dataset_input,
                           y=dataset_output,
@@ -220,6 +252,9 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           validation_split=0.1,
                           callbacks=[cp_callback]
                           )
+                superepoch_loss = history.history['loss']
+                superepoch_val_loss = history.history['val_loss']
+                
             else:
                 history = model.fit(x=dataset_input,
                           y=dataset_output,
@@ -228,9 +263,11 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           validation_data=(dataset_input, dataset_output),
                           callbacks=[cp_callback]
                           )
-            if not (same_data_for_validation and use_generator):
-                loss += history.history['loss']
-                val_loss += history.history['val_loss']
+                superepoch_loss = history.history['loss']
+                superepoch_val_loss = history.history['val_loss']
+                
+            loss += superepoch_loss
+            val_loss += superepoch_val_loss
             epochs_list = range(1, (superepoch + 1) * epochs_per_superepoch + 1)
             if evolution_graph:
                 fix, ax = plt.subplots()
@@ -241,32 +278,28 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                 ax.set_title("Evolution of epochs")
                 plt.show()
             
-            g = generator(tests_per_superepoch)
-            inputs, output = next(g)
-            
-            inputs[2] = np.array(list(map(lambda values: values[0] + [0] * CONFIG['MAX_PROGRAM_SIZE'], inputs[2])))
-            
-            predictions = model(inputs)
-            expectations = pt.RNN2JSON(output)
-            prediction_chars = pt.rnn2list(predictions)
-            
-            for i in range(predictions.shape[0]):
-                print('\nIntent:')
-                print(f'Input: "{"".join([int_to_char_intent[tok] for tok in inputs[0][i]])}"')
-                print(f'Output: "{"".join([int_to_char_intent[tok] for tok in inputs[1][i]])}"\n')
-                
-                
-                print('Expected output program:')
-                print(expectations[i])
-                print('Actual output program:')
-                print(prediction_chars[i])
-                
+            if (tests_per_superepoch > 0):
+                test_model(model, testing_generator)                
             
     else:
         latest = tf.train.latest_checkpoint(checkpointdir)
         model.load_weights(latest)
     
     return model
+
+def get_model_from_args(args):
+    return getModel(
+            args.train,
+            examples_per_epoch=2 ** 15,
+            batch_size=args.batch_size,
+            total_epochs=args.total_epochs,
+            epochs_per_superepoch=args.epochs_per_superepoch,
+            evolution_graph=args.evolution_graph,
+            saving_frequency=args.saving_frequency,
+            tests_per_superepoch=args.tests_per_superepoch,
+            use_generator=args.use_generator,
+            same_data_for_validation=args.same_data_for_validation
+        )
 
 tokenizer_program = pt.get_tokenizer()
 char_to_int_program = tokenizer_program.word_index
@@ -282,16 +315,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     int_to_char_intent = tokenizer_io.index_word
     
-    getModel(
-        args.train,
-        examples_per_epoch=2 ** 15,
-        batch_size=args.batch_size,
-        total_epochs=args.total_epochs,
-        epochs_per_superepoch=args.epochs_per_superepoch,
-        evolution_graph=args.evolution_graph,
-        saving_frequency=args.saving_frequency,
-        tests_per_superepoch=args.tests_per_superepoch,
-        use_generator=args.use_generator,
-        same_data_for_validation=args.same_data_for_validation
-    )
+    get_model_from_args(args)
     
