@@ -7,6 +7,8 @@ Created on Thu Nov 12 11:01:40 2020
 import argparse
 import json
 from tensorflow.keras.preprocessing.text import Tokenizer
+import tensorflow as tf
+import numpy as np
 
 with open("config.json", 'r') as fp:
         CONFIG = json.load(fp)
@@ -53,12 +55,31 @@ def JSON2RNN(json):
     res = []
     for j in json:
         res.append(JSON2RNN_recurs(j))
-    #print(res)
     return tokenizer.texts_to_sequences(res)
     
+def argmax(values):
+    return np.argmax(values.numpy())
 
-def RNN2JSON(rnn):
-    programs = tokenizer.sequences_to_texts(rnn)
+def cut_by_eop(s, leave_first_eop = False):
+    for idx, n in enumerate(s):
+        if tokenizer.index_word[n] == '<EOP>':
+            return s[:idx + 1 if leave_first_eop else idx]
+    return s
+
+def toChar(l):
+    return [tokenizer.index_word[c] for c in l]
+
+def compute_rnn_program(rnn, to_char = False):
+    prediction = tf.map_fn(fn=argmax, elems=rnn).numpy().astype('int32')
+    prediction = cut_by_eop(prediction, to_char)
+    if to_char:
+        return toChar(prediction)
+    return prediction
+
+def RNN2JSON(rnn_programs):
+    rnn_programs = tf.identity(rnn_programs)
+    integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
+    programs = tokenizer.sequences_to_texts(integer_programs)
     programs = [p.split() for p in programs]
     res = []
     for p in programs:
@@ -66,6 +87,13 @@ def RNN2JSON(rnn):
         if p[0] == CONFIG['methods']['concat']:
             actual[p[0]] = parse_concat_params(p[1:])
         res.append(actual)
+    return res
+
+def rnn2list(rnn):
+    res = []
+    for elem in rnn:
+        predictionChars = compute_rnn_program(elem, True)
+        res.append(predictionChars)
     return res
 
 def parse_concat_params(params):

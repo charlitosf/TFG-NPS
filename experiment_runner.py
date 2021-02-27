@@ -157,15 +157,6 @@ def getParser(description):
     parser.add_argument('--use_generator', action='store_true', help='Use generator a generator function for training instead of a whole dataset')
     return parser
 
-def cut_by_eop(s):
-    for idx, n in enumerate(s):
-        if int_to_char_program[n] == '<EOP>':
-            return s[:idx]
-    return s
-
-def toChar(l):
-    return [int_to_char_program[c] for c in l]
-
 def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, total_epochs = 20,
              epochs_per_superepoch = 10, saving_frequency = 10, evolution_graph = True, tests_per_superepoch = 0,
              use_generator = True, same_data_for_validation = False):
@@ -256,23 +247,19 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
             inputs[2] = np.array(list(map(lambda values: values[0] + [0] * CONFIG['MAX_PROGRAM_SIZE'], inputs[2])))
             
             predictions = model(inputs)
-            for i, prediction_ in enumerate(predictions):
+            expectations = pt.RNN2JSON(output)
+            prediction_chars = pt.rnn2list(predictions)
+            
+            for i in range(predictions.shape[0]):
                 print('\nIntent:')
                 print(f'Input: "{"".join([int_to_char_intent[tok] for tok in inputs[0][i]])}"')
                 print(f'Output: "{"".join([int_to_char_intent[tok] for tok in inputs[1][i]])}"\n')
                 
-                prediction = tf.map_fn(fn=lambda values: np.argmax(values.numpy()), elems=prediction_).numpy().astype('int32')
-                prediction = cut_by_eop(prediction)
-                predictionChars = toChar(prediction)
-                
-                expectation = tf.map_fn(fn=lambda values: np.argmax(values.numpy()), elems=output[i]).numpy().astype('int32')
-                expectation = cut_by_eop(expectation)
-                expectation = pt.RNN2JSON([expectation])[0]
                 
                 print('Expected output program:')
-                print(expectation)
+                print(expectations[i])
                 print('Actual output program:')
-                print(predictionChars)
+                print(prediction_chars[i])
                 
             
     else:
@@ -293,7 +280,6 @@ if __name__ == "__main__":
     
     parser = getParser("Experiment runner")
     args = parser.parse_args()
-    int_to_char_program = tokenizer_program.index_word
     int_to_char_intent = tokenizer_io.index_word
     
     getModel(
