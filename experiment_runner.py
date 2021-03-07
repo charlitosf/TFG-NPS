@@ -256,11 +256,11 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
             if saving_frequency > 0 and superepoch % saving_frequency == 0:
                 model.save_weights(CHECKPOINT_PREFIX)
             
-            epochs_list = range(1, (superepoch + 1) * epochs_per_superepoch + 1)
             if evolution_graph:
+                epochs_list = range(1, (superepoch + 1) * epochs_per_superepoch + 1)
                 fix, ax = plt.subplots()
-                ax.plot(epochs_list, loss, label='Loss')
-                ax.plot(epochs_list, val_loss, label='Validation Loss')
+                ax.plot(epochs_list, val_loss, color='orange', label='Validation Loss')
+                ax.plot(epochs_list, loss, color='blue', label='Loss')
                 ax.xaxis.set_major_locator(MaxNLocator(integer=True))
                 ax.legend()
                 ax.set_title("Evolution of epochs")
