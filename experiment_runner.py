@@ -129,7 +129,8 @@ def generator(tam_lote = 32):
             for _ in range(amount_inputs):
                 o_programs.append(translated_program + [char_to_int_program['<EOP>']])
             
-        
+        if len(i_words) != tam_lote or len(o_words) != tam_lote:
+            print(len(i_words), len(o_words))
         max_longitud_iwords = max([len(word) for word in i_words])
         max_longitud_owords = max([len(word) for word in o_words])
         
@@ -168,7 +169,7 @@ def str2bool(v):
         
 def getParser(description):
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--train', action='store_true', help='Set for training the model. False for loading it from the last checkpoint')
+    parser.add_argument('--train', action='store_true', help='Set for training the model')
     parser.add_argument('--same_data_for_validation', action='store_true', help='Instead of generating (or using) different data between the training and validation datasets, use the same')
     parser.add_argument('--batch_size', type=int, default=256, help='Batch size used for the model')
     parser.add_argument('--evolution_graph', action='store_true', help='Set for printing a graph with the evolution of the loss trhought the training')
@@ -178,11 +179,12 @@ def getParser(description):
     parser.add_argument('--tests_per_superepoch', type=int, default=1, help='Amount of examples passed to the network for each superepoch (for testing purposes)')
     parser.add_argument('--use_generator', action='store_true', help='Use generator a generator function for training instead of a whole dataset')
     parser.add_argument('--use_attention', action='store_true', help='Generate the model using the attetion mechanism')
+    parser.add_argument('--use_last_checkpoint', action='store_true', help='Start the model from the last checkpoint')
     return parser
 
 def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, total_epochs = 20,
              epochs_per_superepoch = 10, saving_frequency = 10, evolution_graph = True, tests_per_superepoch = 0,
-             use_generator = True, same_data_for_validation = False, attention = False):
+             use_generator = True, same_data_for_validation = False, attention = False, use_last_checkpoint = False):
     
     if attention:
         model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
@@ -191,6 +193,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     EXAMPLES_PER_EPOCH = examples_per_epoch
     EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / validation_ratio)
     BATCH_SIZE = batch_size
+    VERBOSE = 2
     
     gen_training = generator(BATCH_SIZE)
     gen_validation = generator(BATCH_SIZE)
@@ -202,6 +205,9 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
         CHECKPOINT_PREFIX = 'checkpoints/last_cp'
     else:
         CHECKPOINT_PREFIX = 'att_checkpoints/last_cp'
+    
+    if use_last_checkpoint:
+        model.load_weights(CHECKPOINT_PREFIX)
     
     if train:
         loss = []
@@ -221,6 +227,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           validation_data=gen_validation,
                           validation_steps=validation_steps,
                           epochs=epochs_per_superepoch,
+                          verbose=VERBOSE,
                           )
                 superepoch_loss = history.history['loss']
                 superepoch_val_loss = history.history['val_loss']
@@ -234,6 +241,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                               y=data_out,
                               batch_size=BATCH_SIZE,
                               validation_data=(data_in, data_out),
+                              verbose=VERBOSE,
                               )
                     superepoch_loss += history.history['loss']
                     superepoch_val_loss += history.history['val_loss']
@@ -244,6 +252,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           batch_size=BATCH_SIZE,
                           epochs=epochs_per_superepoch,
                           validation_split=0.1,
+                          verbose=VERBOSE,
                           )
                 superepoch_loss = history.history['loss']
                 superepoch_val_loss = history.history['val_loss']
@@ -254,6 +263,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           batch_size=BATCH_SIZE,
                           epochs=epochs_per_superepoch,
                           validation_data=(dataset_input, dataset_output),
+                          verbose=VERBOSE,
                           )
                 superepoch_loss = history.history['loss']
                 superepoch_val_loss = history.history['val_loss']
@@ -275,10 +285,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                 plt.show()
             
             if (tests_per_superepoch > 0):
-                test_model(model, testing_generator)                
-            
-    else:
-        model.load_weights(CHECKPOINT_PREFIX)
+                test_model(model, testing_generator)
     
     return model
 
@@ -295,6 +302,7 @@ def get_model_from_args(args):
             use_generator=args.use_generator,
             same_data_for_validation=args.same_data_for_validation,
             attention=args.use_attention,
+            use_last_checkpoint=args.use_last_checkpoint,
         )
 
 tokenizer_program = pt.get_tokenizer()
