@@ -177,12 +177,17 @@ def getParser(description):
     parser.add_argument('--saving_frequency', type=int, default=10, help='Frequency (in epochs) in which a checkpoint will be saved')
     parser.add_argument('--tests_per_superepoch', type=int, default=1, help='Amount of examples passed to the network for each superepoch (for testing purposes)')
     parser.add_argument('--use_generator', action='store_true', help='Use generator a generator function for training instead of a whole dataset')
+    parser.add_argument('--use_attention', action='store_true', help='Generate the model using the attetion mechanism')
     return parser
 
 def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, total_epochs = 20,
              epochs_per_superepoch = 10, saving_frequency = 10, evolution_graph = True, tests_per_superepoch = 0,
-             use_generator = True, same_data_for_validation = False):
-    model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
+             use_generator = True, same_data_for_validation = False, attention = False):
+    
+    if attention:
+        model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
+    else:
+        model = nn.generate_attention_model(tam_intent_vocabulary, tam_program_vocabulary)
     EXAMPLES_PER_EPOCH = examples_per_epoch
     EXAMPLES_PER_EPOCH_VALIDATION = int(EXAMPLES_PER_EPOCH / validation_ratio)
     BATCH_SIZE = batch_size
@@ -193,7 +198,10 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     steps_per_epoch = int(EXAMPLES_PER_EPOCH / BATCH_SIZE)
     validation_steps = int(EXAMPLES_PER_EPOCH_VALIDATION / BATCH_SIZE)
     
-    CHECKPOINT_PREFIX = 'checkpoints/last_cp'
+    if attention:
+        CHECKPOINT_PREFIX = 'checkpoints/last_cp'
+    else:
+        CHECKPOINT_PREFIX = 'att_checkpoints/last_cp'
     
     if train:
         loss = []
@@ -285,7 +293,8 @@ def get_model_from_args(args):
             saving_frequency=args.saving_frequency,
             tests_per_superepoch=args.tests_per_superepoch,
             use_generator=args.use_generator,
-            same_data_for_validation=args.same_data_for_validation
+            same_data_for_validation=args.same_data_for_validation,
+            attention=args.use_attention,
         )
 
 tokenizer_program = pt.get_tokenizer()
