@@ -86,6 +86,8 @@ def RNN2JSON(rnn_programs):
         actual = {}
         if p[0] == CONFIG['methods']['concat']:
             actual[p[0]] = parse_concat_params(p[1:])
+        else:
+            raise Exception
         res.append(actual)
     return res
 
@@ -102,11 +104,8 @@ def parse_concat_params(params):
     actual_method = ''
     for param in params:
         if param in CONFIG['methods'].values():
-            
             if not actual == '':
-                if len(actual[actual_method]) == 1:
-                    actual[actual_method] = actual[actual_method][0]
-                res.append(actual)
+                res.append(check_method(actual, actual_method))
                 
             actual_method = param
             actual = {
@@ -114,13 +113,33 @@ def parse_concat_params(params):
                 }
         else:
             actual[actual_method].append(param)
-    
-    if len(actual[actual_method]) == 1:
-        actual[actual_method] = actual[actual_method][0]
-    res.append(actual)
+
+    res.append(check_method(actual, actual_method))
     
     return res
+
+def check_method(actual, actual_method):
+    if len(actual[actual_method]) == 1:
+        if actual_method in ['__const_str_c__', '__to_case__']:
+            actual[actual_method] = actual[actual_method][0]
+            return actual
+        raise Exception
+    if  (actual_method in ['__sub_str__', '__get_token__'] and len(actual[actual_method]) != 2) or \
+        (actual_method == '__swap__' and len(actual[actual_method]) == 3) or \
+        (actual_method == '__get_token__' and actual[actual_method][0] not in CONFIG['t']) or \
+        (actual_method == '__swap__' and actual[actual_method][3] not in CONFIG['t']) or \
+        (actual_method == '__to_case__' and actual[actual_method] not in CONFIG['s']) \
+    :
+        raise Exception
     
+    return actual
+
+def is_rnn_program_correct(program):
+    try:
+        RNN2JSON([program])
+        return True
+    except Exception:
+        return False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Program translator JSON - Number Array")

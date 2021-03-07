@@ -59,8 +59,10 @@ def test_model(model, generator):
         
         print('Expected output program:')
         print(expectations[i])
+        print(f'Correct? {pt.is_rnn_program_correct(output[i])}\n')
         print('Actual output program:')
         print(prediction_chars[i])
+        print(f'Correct? {pt.is_rnn_program_correct(predictions[i])}\n')
 
 """
 Función generadora de los datos de la red neuronal
