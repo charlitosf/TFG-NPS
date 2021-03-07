@@ -11,7 +11,6 @@ import program_translator as pt
 import numpy as np
 import tensorflow as tf
 import json
-import os
 import argparse
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
@@ -194,18 +193,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     steps_per_epoch = int(EXAMPLES_PER_EPOCH / BATCH_SIZE)
     validation_steps = int(EXAMPLES_PER_EPOCH_VALIDATION / BATCH_SIZE)
     
-    checkpoint_path = "checkpoints/cp-{epoch:04d}.ckpt"
-    checkpointdir = os.path.dirname(checkpoint_path)
-    
-    SAVING_FREQUENCY = saving_frequency # epochs
-    
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                     save_weights_only=True,
-                                                     verbose=1,
-                                                     save_freq=SAVING_FREQUENCY*steps_per_epoch)
-    
-    
-    model.save_weights(checkpoint_path.format(epoch=0))
+    CHECKPOINT_PREFIX = 'checkpoints/last_cp'
     
     if train:
         loss = []
@@ -225,7 +213,6 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           validation_data=gen_validation,
                           validation_steps=validation_steps,
                           epochs=epochs_per_superepoch,
-                          callbacks=[cp_callback]
                           )
                 superepoch_loss = history.history['loss']
                 superepoch_val_loss = history.history['val_loss']
@@ -239,7 +226,6 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                               y=data_out,
                               batch_size=BATCH_SIZE,
                               validation_data=(data_in, data_out),
-                              callbacks=[cp_callback]
                               )
                     superepoch_loss += history.history['loss']
                     superepoch_val_loss += history.history['val_loss']
@@ -250,7 +236,6 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           batch_size=BATCH_SIZE,
                           epochs=epochs_per_superepoch,
                           validation_split=0.1,
-                          callbacks=[cp_callback]
                           )
                 superepoch_loss = history.history['loss']
                 superepoch_val_loss = history.history['val_loss']
@@ -261,13 +246,16 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           batch_size=BATCH_SIZE,
                           epochs=epochs_per_superepoch,
                           validation_data=(dataset_input, dataset_output),
-                          callbacks=[cp_callback]
                           )
                 superepoch_loss = history.history['loss']
                 superepoch_val_loss = history.history['val_loss']
                 
             loss += superepoch_loss
             val_loss += superepoch_val_loss
+            
+            if saving_frequency > 0 and superepoch % saving_frequency == 0:
+                model.save_weights(CHECKPOINT_PREFIX)
+            
             epochs_list = range(1, (superepoch + 1) * epochs_per_superepoch + 1)
             if evolution_graph:
                 fix, ax = plt.subplots()
@@ -282,8 +270,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                 test_model(model, testing_generator)                
             
     else:
-        latest = tf.train.latest_checkpoint(checkpointdir)
-        model.load_weights(latest)
+        model.load_weights(CHECKPOINT_PREFIX)
     
     return model
 
