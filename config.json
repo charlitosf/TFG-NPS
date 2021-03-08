@@ -1,0 +1,37 @@
+{
+    "DEFAULT": {
+        "MIN_STR_SIZE": 2,
+        "MAX_STR_SIZE": 15,
+        "MAX_E_CONCAT": 5,
+        "MAX_INPUTS_PER_PROGRAM": 4,
+        "MIN_INPUTS_PER_PROGRAM": 1,
+        "MAX_PROGRAM_SIZE": 128,
+        "t": [
+            "__number__",
+            "__digit__",
+            "__word__",
+            "__char__"
+        ],
+        "s": [
+            "__proper__",
+            "__all_caps__",
+            "__lower__"
+        ],
+        "c": [
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+            "abcdefghijklmnopqrstuvwxyz",
+            "0123456789",
+            " ",
+            "."
+        ],
+        "methods": {
+            "concat": "__concat__",
+            "sub_str": "__sub_str__",
+            "get_token": "__get_token__",
+            "to_case": "__to_case__",
+            "swap": "__swap__",
+            "const_str_w": "__const_str_w__",
+            "const_str_c": "__const_str_c__"
+        }
+    }
+}
