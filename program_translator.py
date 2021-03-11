@@ -87,7 +87,7 @@ def RNN2JSON(rnn_programs):
         if p[0] == CONFIG['methods']['concat']:
             actual[p[0]] = parse_concat_params(p[1:])
         else:
-            raise Exception
+            raise Exception(p[0])
         res.append(actual)
     return res
 
@@ -120,17 +120,17 @@ def parse_concat_params(params):
 
 def check_method(actual, actual_method):
     if len(actual[actual_method]) == 1:
-        # if actual_method in ['__const_str_c__', '__to_case__']:
+        if actual_method in ['__const_str_c__', '__to_case__']:
             actual[actual_method] = actual[actual_method][0]
             return actual
-        # raise Exception
-    # if  (actual_method in ['__sub_str__', '__get_token__'] and len(actual[actual_method]) != 2) or \
-    #     (actual_method == '__swap__' and len(actual[actual_method]) == 3) or \
-    #     (actual_method == '__get_token__' and actual[actual_method][0] not in CONFIG['t']) or \
-    #     (actual_method == '__swap__' and actual[actual_method][3] not in CONFIG['t']) or \
-    #     (actual_method == '__to_case__' and actual[actual_method] not in CONFIG['s']) \
-    # :
-    #     raise Exception
+        raise Exception(actual_method, actual[actual_method])
+    if  (actual_method in ['__sub_str__', '__get_token__'] and len(actual[actual_method]) != 2) or \
+        (actual_method == '__swap__' and len(actual[actual_method]) == 3) or \
+        (actual_method == '__get_token__' and actual[actual_method][1] not in CONFIG['t']) or \
+        (actual_method == '__swap__' and actual[actual_method][2] not in CONFIG['t']) or \
+        (actual_method == '__to_case__' and actual[actual_method] not in CONFIG['s']) \
+    :
+        raise Exception(actual_method, actual[actual_method])
     
     return actual
 
