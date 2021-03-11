@@ -155,7 +155,8 @@ def check_method(actual, actual_method):
         (actual_method == '__get_token__' and actual[actual_method][1] not in CONFIG['t']) or \
         (actual_method == '__swap__' and actual[actual_method][2] not in CONFIG['t']) or \
         (actual_method == '__to_case__' and actual[actual_method] not in CONFIG['s']) or \
-        (actual_method == '__concat__') \
+        (actual_method == '__concat__') or \
+        (actual_method == '__const_str_c__' and len(actual[actual_method]) != 1) \
     :
         raise Exception(actual_method, actual[actual_method])
     

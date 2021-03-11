@@ -4,6 +4,8 @@ Created on Sun Nov 29 12:28:44 2020
 
 @author: charl
 """
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='1'
 import neural_networks as nn
 import program_generator as pg
 import program_runner as pr
@@ -66,14 +68,19 @@ def test_model(model, generator):
         if correct:
             distance = pr.check_consistency(expectations[i], in_str, out_str)
             print(f'Levenshtein distance: {distance}\n')
+        
+        
         print('Actual output program:')
-        print(prediction_chars[i])
         correct = pt.is_rnn_program_correct(predictions[i])
-        print(f'Correct? {correct}')
         if correct:
-            json_prediction = pt.RNN2JSON([predictions[i]])
+            json_prediction = pt.RNN2JSON([predictions[i]])[0]
+            print(json_prediction)
             distance = pr.check_consistency(json_prediction, in_str, out_str)
             print(f'Levenshtein distance: {distance}\n')
+        else:
+            print(prediction_chars[i])
+            print(f'Correct? {correct}')
+            
 
 """
 Función generadora de los datos de la red neuronal
