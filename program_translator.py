@@ -38,6 +38,20 @@ tokenizer = train_tokenizer(tokenizer)
 def get_tokenizer():
     return tokenizer
 
+def fix_list(str_list):
+    res = []
+    space = True
+    for elem in str_list:
+        if space:
+            if len(elem) == 0:
+                space = False
+                res.append(' ')
+            else:
+                res.append(elem)
+        else:
+            space = True
+    return res
+
 def JSON2RNN_recurs(json):
     res = []
     if isinstance(json, dict):
@@ -77,10 +91,17 @@ def compute_rnn_program(rnn, to_char = False):
     return prediction
 
 def RNN2JSON(rnn_programs):
-    rnn_programs = tf.identity(rnn_programs)
-    integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
+    if isinstance(rnn_programs, list):
+        rnn_programs = rnn_programs.copy()
+    else:
+        rnn_programs = tf.identity(rnn_programs)
+    if not isinstance(rnn_programs[0][0], int):
+        integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
+    else:
+        integer_programs = rnn_programs
     programs = tokenizer.sequences_to_texts(integer_programs)
-    programs = [p.split() for p in programs]
+    programs = [p.split(' ') for p in programs]
+    programs = [fix_list(p) for p in programs]
     res = []
     for p in programs:
         actual = {}
@@ -112,6 +133,11 @@ def parse_concat_params(params):
                     param: []
                 }
         else:
+            if actual_method == '__sub_str__':
+                param = int(param)
+            elif actual_method in ['__get_token__', '__swap__']:
+                if param not in CONFIG['t']:
+                    param = int(param)
             actual[actual_method].append(param)
 
     res.append(check_method(actual, actual_method))
@@ -125,10 +151,11 @@ def check_method(actual, actual_method):
             return actual
         raise Exception(actual_method, actual[actual_method])
     if  (actual_method in ['__sub_str__', '__get_token__'] and len(actual[actual_method]) != 2) or \
-        (actual_method == '__swap__' and len(actual[actual_method]) == 3) or \
+        (actual_method == '__swap__' and len(actual[actual_method]) != 3) or \
         (actual_method == '__get_token__' and actual[actual_method][1] not in CONFIG['t']) or \
         (actual_method == '__swap__' and actual[actual_method][2] not in CONFIG['t']) or \
-        (actual_method == '__to_case__' and actual[actual_method] not in CONFIG['s']) \
+        (actual_method == '__to_case__' and actual[actual_method] not in CONFIG['s']) or \
+        (actual_method == '__concat__') \
     :
         raise Exception(actual_method, actual[actual_method])
     
