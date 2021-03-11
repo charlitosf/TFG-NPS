@@ -52,17 +52,28 @@ def test_model(model, generator):
     prediction_chars = pt.rnn2list(predictions)
     
     for i in range(predictions.shape[0]):
+        in_str = integer_list2string(inputs[0][i])
+        out_str = integer_list2string(inputs[1][i])
         print('\nIntent:')
-        print(f'Input: "{integer_list2string(inputs[0][i])}"')
-        print(f'Output: "{integer_list2string(inputs[1][i])}"\n')
+        print(f'Input: "{in_str}"')
+        print(f'Output: "{out_str}"\n')
         
         
         print('Expected output program:')
         print(expectations[i])
-        print(f'Correct? {pt.is_rnn_program_correct(output[i])}\n')
+        correct = pt.is_rnn_program_correct(output[i])
+        print(f'Correct? {correct}')
+        if correct:
+            distance = pr.check_consistency(expectations[i], in_str, out_str)
+            print(f'Levenshtein distance: {distance}\n')
         print('Actual output program:')
         print(prediction_chars[i])
-        print(f'Correct? {pt.is_rnn_program_correct(predictions[i])}\n')
+        correct = pt.is_rnn_program_correct(predictions[i])
+        print(f'Correct? {correct}')
+        if correct:
+            json_prediction = pt.RNN2JSON([predictions[i]])
+            distance = pr.check_consistency(json_prediction, in_str, out_str)
+            print(f'Levenshtein distance: {distance}\n')
 
 """
 Función generadora de los datos de la red neuronal

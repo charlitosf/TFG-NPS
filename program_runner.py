@@ -7,6 +7,7 @@ Created on Tue Nov  3 21:27:17 2020
 
 import argparse
 import json
+from Levenshtein import distance as levenshtein_distance
 
 with open("config.json", 'r') as fp:
     CONFIG = json.load(fp)
@@ -146,6 +147,9 @@ def decode_get_word(i, in_str):
 def decode_get_char(i, in_str):
     return in_str[i]
 
+def check_consistency(program, INPUT, OUTPUT):
+    return levenshtein_distance(decode_p(program, INPUT), OUTPUT)
+
 
 if __name__ == '__main__':
     ## Parsing arguments
@@ -158,7 +162,6 @@ if __name__ == '__main__':
     ## Loading data from input file
     with open(args.file, 'r') as f:
         ps = json.load(f)
-    
     ## Decoding the program (or programs)
     for p in ps:
         res = decode_p(p, INPUT)
