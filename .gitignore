@@ -3,5 +3,7 @@ __pycache__
 *.ini
 *.json
 *.zip
+*.log
+*.png
 
-checkpoints/
+*checkpoints/

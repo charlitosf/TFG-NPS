@@ -17,6 +17,8 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import random
+import sys
+from datetime import datetime
 #random.seed(1235)
 
 print(f"Tensorflow version: {tf.version.VERSION}")
@@ -63,12 +65,6 @@ def test_model(model, generator):
         
         print('Expected output program:')
         print(expectations[i])
-        correct = pt.is_rnn_program_correct(output[i])
-        print(f'Correct? {correct}')
-        if correct:
-            distance = pr.check_consistency(expectations[i], in_str, out_str)
-            print(f'Levenshtein distance: {distance}\n')
-        
         
         print('Actual output program:')
         correct = pt.is_rnn_program_correct(predictions[i])
@@ -76,10 +72,12 @@ def test_model(model, generator):
             json_prediction = pt.RNN2JSON([predictions[i]])[0]
             print(json_prediction)
             distance = pr.check_consistency(json_prediction, in_str, out_str)
-            print(f'Levenshtein distance: {distance}\n')
+            print(f'Actual output: "{pr.decode_p(json_prediction, in_str)}"')
+            print(f'Levenshtein distance: {distance}')
         else:
             print(prediction_chars[i])
             print(f'Correct? {correct}')
+        print()
             
 
 """
@@ -130,6 +128,8 @@ def generator(tam_lote = 32):
                     try:
                         i_word = pg.gen_word()
                         o_word = list(pr.decode_p(o_program, ''.join(i_word)))
+                        if len(o_word) == 0:
+                            fails = True
                     except:
                         fails = True
                         #print("Execution failure, generating a new program")
@@ -222,9 +222,9 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     validation_steps = int(EXAMPLES_PER_EPOCH_VALIDATION / BATCH_SIZE)
     
     if attention:
-        CHECKPOINT_PREFIX = 'checkpoints/last_cp'
-    else:
         CHECKPOINT_PREFIX = 'att_checkpoints/last_cp'
+    else:
+        CHECKPOINT_PREFIX = 'checkpoints/last_cp'
     
     if use_last_checkpoint:
         model.load_weights(CHECKPOINT_PREFIX)
@@ -339,5 +339,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     int_to_char_intent = tokenizer_io.index_word
     
+    # sys.stdout = open(datetime.today().strftime('%Y-%m-%d_%H-%M-%S.log'), 'w')
     get_model_from_args(args)
-    
+    # sys.stdout.close()

@@ -3,9 +3,9 @@
         "MIN_STR_SIZE": 2,
         "MAX_STR_SIZE": 15,
         "MAX_E_CONCAT": 5,
-        "MAX_INPUTS_PER_PROGRAM": 4,
-        "MIN_INPUTS_PER_PROGRAM": 1,
-        "MAX_PROGRAM_SIZE": 128,
+        "MAX_INPUTS_PER_PROGRAM": 5,
+        "MIN_INPUTS_PER_PROGRAM": 2,
+        "MAX_PROGRAM_SIZE": 64,
         "t": [
             "__number__",
             "__digit__",

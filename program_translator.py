@@ -132,6 +132,8 @@ def parse_concat_params(params):
             actual = {
                     param: []
                 }
+        elif actual_method == '':
+            raise Exception(param)
         else:
             if actual_method == '__sub_str__':
                 param = int(param)
