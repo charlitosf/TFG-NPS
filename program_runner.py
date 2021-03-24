@@ -13,11 +13,10 @@ with open("config.json", 'r') as fp:
     CONFIG = json.load(fp)
     fp.close()
 
-CONFIG = CONFIG['DEFAULT']
-METHODS = CONFIG['methods']
+CONFIG = CONFIG['SIMPLIFIED_1']
 
 def decode_p(p, INPUT):
-    param_list = p[METHODS['concat']]
+    param_list = p['__concat__']
     res = ''
     
     for param in param_list:
@@ -27,12 +26,12 @@ def decode_p(p, INPUT):
 
 def decode_e(e, INPUT):
     options = {
-            METHODS['sub_str']: decode_substr,
-            METHODS['to_case']: decode_to_case,
-            METHODS['get_token']: decode_get_token,
-            METHODS['swap']: decode_swap,
-            METHODS['const_str_c']: decode_const_str_c,
-            METHODS['const_str_w']: decode_const_str_w
+            '__sub_str__': decode_substr,
+            '__to_case__': decode_to_case,
+            '__get_token__': decode_get_token,
+            '__swap__': decode_swap,
+            '__const_str_c__': decode_const_str_c,
+            '__const_str_w__': decode_const_str_w
         }
     key = list(e.keys())[0]
     return options[key](e[key], INPUT)

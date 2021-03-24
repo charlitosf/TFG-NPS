@@ -33,5 +33,35 @@
             "const_str_w": "__const_str_w__",
             "const_str_c": "__const_str_c__"
         }
+    },
+    "SIMPLIFIED_1": {
+        "MIN_STR_SIZE": 1,
+        "MAX_STR_SIZE": 15,
+        "MAX_E_CONCAT": 3,
+        "MAX_INPUTS_PER_PROGRAM": 5,
+        "MIN_INPUTS_PER_PROGRAM": 2,
+        "MAX_PROGRAM_SIZE": 64,
+        "t": [
+            "__number__",
+            "__digit__",
+            "__word__",
+            "__char__"
+        ],
+        "s": [
+            "__proper__",
+            "__all_caps__",
+            "__lower__"
+        ],
+        "c": [
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 ."
+        ],
+        "methods": {
+            "concat": "__concat__",
+            "sub_str": "__sub_str__",
+            "get_token": "__get_token__",
+            "to_case": "__to_case__",
+            "swap": "__swap__",
+            "const_str_w": "__const_str_w__"
+        }
     }
 }

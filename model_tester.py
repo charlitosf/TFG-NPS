@@ -12,8 +12,8 @@ import numpy as np
 with open("config.json", 'r') as fp:
     CONFIG = json.load(fp)
     fp.close()
-    
-CONFIG = CONFIG['DEFAULT']
+
+CONFIG = CONFIG['SIMPLIFIED_1']
 
 def string_to_RNNinput(s):
     s = list(s)

@@ -13,7 +13,7 @@ with open("config.json", 'r') as fp:
     CONFIG = json.load(fp)
     fp.close()
     
-CONFIG = CONFIG['DEFAULT']
+CONFIG = CONFIG['SIMPLIFIED_1']
 
 MAX_E_CONCAT = CONFIG['MAX_E_CONCAT']
 MAX_STR_SIZE = CONFIG['MAX_STR_SIZE']
@@ -43,7 +43,8 @@ def gen_p():
     return res
 
 def gen_e():
-    choices = [gen_f, gen_n, gen_const_str_w, gen_const_str_c]
+    choices = [gen_f, gen_n, gen_const_str_w]
+    
     choice = random.choice(choices)
     
     return choice()

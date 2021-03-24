@@ -13,7 +13,7 @@ import numpy as np
 with open("config.json", 'r') as fp:
         CONFIG = json.load(fp)
         fp.close()
-CONFIG = CONFIG['DEFAULT']
+CONFIG = CONFIG['SIMPLIFIED_1']
 
 tokenizer = Tokenizer(filters='',
                       lower=False,
@@ -159,7 +159,7 @@ def check_method(actual, actual_method):
         (actual_method == '__to_case__' and actual[actual_method] not in CONFIG['s']) or \
         (actual_method == '__concat__') or \
         (actual_method == '__const_str_c__' and len(actual[actual_method]) != 1) or \
-        (actual_method == '__const_str_w__' and len(actual[actual_method]) < 2) \
+        (actual_method == '__const_str_w__' and len(actual[actual_method]) < 1) \
     :
         raise Exception(actual_method, actual[actual_method])
     
