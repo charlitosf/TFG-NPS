@@ -17,12 +17,14 @@ import argparse
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import random
-import sys
-from datetime import datetime
 #random.seed(1235)
 
 print(f"Tensorflow version: {tf.version.VERSION}")
-print(f"GPU found: {len(tf.config.experimental.list_physical_devices('GPU')) != 0}")
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:    
+    print("GPU found")
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
 
 from tensorflow.keras.preprocessing.text import Tokenizer
 
