@@ -46,7 +46,7 @@ def getIOtokenizer():
     return tokenizer
 
 def integer_list2string(integer_list):
-    return "".join([int_to_char_intent[tok] for tok in integer_list])
+    return "".join([(int_to_char_intent[tok] if tok != 0 else '') for tok in integer_list])
 
 def test_model(model, generator):
     inputs, output = next(generator)
