@@ -151,6 +151,8 @@ def check_method(actual, actual_method):
         if actual_method in ['__const_str_c__', '__to_case__']:
             actual[actual_method] = actual[actual_method][0]
             return actual
+        if actual_method == '__const_str_w__':
+            return actual
         raise Exception(actual_method, actual[actual_method])
     if  (actual_method in ['__sub_str__', '__get_token__'] and len(actual[actual_method]) != 2) or \
         (actual_method == '__swap__' and len(actual[actual_method]) != 3) or \
