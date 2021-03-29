@@ -13,7 +13,7 @@ with open("config.json", 'r') as fp:
     CONFIG = json.load(fp)
     fp.close()
 
-CONFIG = CONFIG['SIMPLIFIED_1']
+CONFIG = CONFIG['SIMPLIFIED_2']
 
 def string_to_RNNinput(s):
     s = list(s)

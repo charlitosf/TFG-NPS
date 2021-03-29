@@ -63,5 +63,23 @@
             "swap": "__swap__",
             "const_str_w": "__const_str_w__"
         }
+    },
+    "SIMPLIFIED_2": {
+        "MIN_STR_SIZE": 1,
+        "MAX_STR_SIZE": 15,
+        "MAX_E_CONCAT": 3,
+        "MAX_INPUTS_PER_PROGRAM": 5,
+        "MIN_INPUTS_PER_PROGRAM": 1,
+        "MAX_PROGRAM_SIZE": 64,
+        "t": [],
+        "s": [],
+        "c": [
+            "0123456789"
+        ],
+        "methods": {
+            "concat": "__concat__",
+            "sub_str": "__sub_str__",
+            "const_str_w": "__const_str_w__"
+        }
     }
 }

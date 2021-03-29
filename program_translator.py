@@ -13,7 +13,7 @@ import numpy as np
 with open("config.json", 'r') as fp:
         CONFIG = json.load(fp)
         fp.close()
-CONFIG = CONFIG['SIMPLIFIED_1']
+CONFIG = CONFIG['SIMPLIFIED_2']
 
 tokenizer = Tokenizer(filters='',
                       lower=False,
@@ -23,8 +23,8 @@ tokenizer = Tokenizer(filters='',
 def train_tokenizer(tokenizer):
     tokenizer.fit_on_texts(["<EOP>", "<SOP>"])
     tokenizer.fit_on_texts(CONFIG['methods'].values())
-    tokenizer.fit_on_texts(CONFIG['t'])
-    tokenizer.fit_on_texts(CONFIG['s'])
+    # tokenizer.fit_on_texts(CONFIG['t'])
+    # tokenizer.fit_on_texts(CONFIG['s'])
     positives = [str(i) for i in range(CONFIG['MAX_STR_SIZE'])]
     negatives = [str(-i - 1) for i in range(CONFIG['MAX_STR_SIZE'])]
     tokenizer.fit_on_texts(positives)

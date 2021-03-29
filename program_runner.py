@@ -13,7 +13,7 @@ with open("config.json", 'r') as fp:
     CONFIG = json.load(fp)
     fp.close()
 
-CONFIG = CONFIG['SIMPLIFIED_1']
+CONFIG = CONFIG['SIMPLIFIED_2']
 
 def decode_p(p, INPUT):
     param_list = p['__concat__']
