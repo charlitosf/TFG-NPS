@@ -80,13 +80,19 @@ def cut_by_eop(s, leave_first_eop = False):
             return s[:idx + 1 if leave_first_eop else idx]
     return s
 
+def cut_by_eop_str(s, leave_first_eop = False):
+    for idx, n in enumerate(s):
+        if n == '<EOP>':
+            return s[:idx + 1 if leave_first_eop else idx]
+    return s
+
 def toChar(l):
     return [tokenizer.index_word[c] for c in l]
 
 def compute_rnn_program(rnn, to_char = False):
     prediction = tf.map_fn(fn=argmax, elems=rnn).numpy().astype('int32')
-    prediction = cut_by_eop(prediction, to_char)
     if to_char:
+        prediction = cut_by_eop(prediction, to_char)
         return toChar(prediction)
     return prediction
 
@@ -96,12 +102,14 @@ def RNN2JSON(rnn_programs):
     else:
         rnn_programs = tf.identity(rnn_programs)
     if not isinstance(rnn_programs[0][0], int):
-        integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
+        # integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
+        integer_programs = tf.map_fn(fn=compute_rnn_program, elems=rnn_programs).numpy().astype('int32')
     else:
         integer_programs = rnn_programs
     programs = tokenizer.sequences_to_texts(integer_programs)
     programs = [p.split(' ') for p in programs]
     programs = [fix_list(p) for p in programs]
+    programs = list(map(cut_by_eop_str, programs))
     res = []
     for p in programs:
         actual = {}
