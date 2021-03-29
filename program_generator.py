@@ -53,8 +53,8 @@ def gen_f():
     res = {
             METHODS['sub_str']: []
         }
-    k1 = random.randint(0, MAX_STR_SIZE-1)
-    k2 = random.randint(k1, MAX_STR_SIZE-1)
+    k1 = random.randint(0, MAX_STR_SIZE-2)
+    k2 = random.randint(k1 + 1, MAX_STR_SIZE-1)
     res[METHODS['sub_str']].append(k1)
     res[METHODS['sub_str']].append(k2)
     
