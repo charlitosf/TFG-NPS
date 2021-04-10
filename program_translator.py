@@ -102,8 +102,8 @@ def RNN2JSON(rnn_programs):
     else:
         rnn_programs = tf.identity(rnn_programs)
     if not isinstance(rnn_programs[0][0], int):
-        # integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
-        integer_programs = tf.map_fn(fn=compute_rnn_program, elems=rnn_programs).numpy().astype('int32')
+        integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
+        # integer_programs = tf.map_fn(fn=compute_rnn_program, elems=rnn_programs).numpy().astype('int32')
     else:
         integer_programs = rnn_programs
     programs = tokenizer.sequences_to_texts(integer_programs)
@@ -207,3 +207,5 @@ if __name__ == "__main__":
             f.close()
     
     print(res)
+    
+    # print(is_rnn_program_correct(inpt[0]))

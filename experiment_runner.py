@@ -78,7 +78,7 @@ def test_model(model, generator):
             print(f'Levenshtein distance: {distance}')
         else:
             print(prediction_chars[i])
-            print(f'Correct? {correct}')
+        print(f'Correct? {correct}')
         print()
             
 
