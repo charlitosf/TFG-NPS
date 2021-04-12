@@ -82,24 +82,6 @@ def test_model(model, generator):
         print()
             
 
-"""
-Función generadora de los datos de la red neuronal
-
-Genera lotes de tamaño tam_lote
-
-- Por cada elemento del lote:
-  - Genera una string como input
-  - Hasta que funcione:
-    - Genera un programa
-    - Ejecuta el programa para obtener la string de output
-  - Traduce el programa finalmente generado (el primero que funcione) a array de enteros y le añade un <EOP> al final
-- Genera un lote de strings de entrada del tamaño de la string de entrada más larga generada
-- Genera un lote de strings de salida del tamaño de la string de salida más larga generada
-- Genera un lote de programas del tamaño del programa más largo generado, traducido a one-hot
-- Genera un lote del mismo tamaño que el anterior (sin traducir a one-hot) que empieza con <SOP> y el resto ceros
-- Devuelve un vector con los lotes de strings de entrada, salida y el "programa" de entrada (la <SOP> y los ceros), junto al lote de programas de salida
-"""
-
 def translate_wordList(wordlist, char_to_int, result):
     for idx, w in enumerate(wordlist):
             for idx_c, c in enumerate(w):
@@ -108,6 +90,24 @@ def translate_wordList(wordlist, char_to_int, result):
     
     
 def generator(tam_lote = 32):
+    """
+    Función generadora de los datos de la red neuronal
+
+    Genera lotes de tamaño tam_lote
+    
+    - Por cada elemento del lote:
+      - Genera una string como input
+      - Hasta que funcione:
+        - Genera un programa
+        - Ejecuta el programa para obtener la string de output
+      - Traduce el programa finalmente generado (el primero que funcione) a array de enteros y le añade un <EOP> al final
+    - Genera un lote de strings de entrada del tamaño de la string de entrada más larga generada
+    - Genera un lote de strings de salida del tamaño de la string de salida más larga generada
+    - Genera un lote de programas del tamaño del programa más largo generado, traducido a one-hot
+    - Genera un lote del mismo tamaño que el anterior (sin traducir a one-hot) que empieza con <SOP> y el resto ceros
+    - Devuelve un vector con los lotes de strings de entrada, salida y el "programa" de entrada (la <SOP> y los ceros), junto al lote de programas de salida
+    """
+
     while True:
         i_words = []
         o_words = []
