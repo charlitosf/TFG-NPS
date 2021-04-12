@@ -39,8 +39,9 @@ def decode_e(e, INPUT):
 def decode_substr(k1_k2, INPUT):
     k1 = k1_k2[0]
     k2 = k1_k2[1]
-    
-    return INPUT[k1:k2]
+    if k2 < len(INPUT):
+        return INPUT[k1:k2]
+    raise Exception(f'{k2} >= {len(INPUT)}')
 
 def decode_to_case(s, INPUT):
     options = {
