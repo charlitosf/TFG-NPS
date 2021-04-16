@@ -9,6 +9,7 @@ import json
 from tensorflow.keras.preprocessing.text import Tokenizer
 import tensorflow as tf
 import numpy as np
+from math import log
 
 with open("config.json", 'r') as fp:
         CONFIG = json.load(fp)
@@ -71,8 +72,20 @@ def JSON2RNN(json):
         res.append(JSON2RNN_recurs(j))
     return tokenizer.texts_to_sequences(res)
     
-def argmax(values):
+def greedy_decoder(values):
     return np.argmax(values.numpy())
+
+def beam_decoder(values, k):
+    res = [[list(), 0.0]]
+    for token_row in values:
+        all_candidates = list()
+        for seq, score in res:
+            for i, token in enumerate(token_row):
+                candidate = [seq + [i], score - log(token.numpy())]
+                all_candidates.append(candidate)
+        ordered = sorted(all_candidates, key=lambda t: t[1])
+        res = ordered[:k]
+    return res
 
 def cut_by_eop(s, leave_first_eop = False):
     for idx, n in enumerate(s):
@@ -89,20 +102,25 @@ def cut_by_eop_str(s, leave_first_eop = False):
 def toChar(l):
     return [tokenizer.index_word[c] for c in l]
 
-def compute_rnn_program(rnn, to_char = False):
-    prediction = tf.map_fn(fn=argmax, elems=rnn).numpy().astype('int32')
+def compute_rnn_program(rnn, to_char = False, greedy = False, k = 1):
+    if greedy:
+        # prediction = tf.map_fn(fn=greedy_decoder, elems=rnn).numpy().astype('int32')
+        prediction = np.array(list(map(greedy_decoder, rnn))).astype('int32')
+    else:
+        prediction = beam_decoder(rnn, k)[0][0]
     if to_char:
         prediction = cut_by_eop(prediction, to_char)
         return toChar(prediction)
     return prediction
 
-def RNN2JSON(rnn_programs):
+def RNN2JSON(rnn_programs, greedy = False, k = 1):
     if isinstance(rnn_programs, list):
         rnn_programs = rnn_programs.copy()
     else:
         rnn_programs = tf.identity(rnn_programs)
     if not isinstance(rnn_programs[0][0], int):
-        integer_programs = np.array(list(map(compute_rnn_program, rnn_programs))).astype('int32')
+        f = [compute_rnn_program(rnn_program, False, greedy, k) for rnn_program in rnn_programs]
+        integer_programs = np.array(f).astype('int32')
         # integer_programs = tf.map_fn(fn=compute_rnn_program, elems=rnn_programs).numpy().astype('int32')
     else:
         integer_programs = rnn_programs

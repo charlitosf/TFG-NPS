@@ -54,7 +54,7 @@ def test_model(model, generator):
     inputs[2] = np.array(list(map(lambda values: values[0] + [0] * CONFIG['MAX_PROGRAM_SIZE'], inputs[2])))
     
     predictions = model(inputs)
-    expectations = pt.RNN2JSON(output)
+    expectations = pt.RNN2JSON(output, True)
     prediction_chars = pt.rnn2list(predictions)
     
     for i in range(predictions.shape[0]):
@@ -71,7 +71,7 @@ def test_model(model, generator):
         print('Actual output program:')
         correct = pt.is_rnn_program_correct(predictions[i])
         if correct:
-            json_prediction = pt.RNN2JSON([predictions[i]])[0]
+            json_prediction = pt.RNN2JSON([predictions[i]], False, 3)[0]
             print(json_prediction)
             distance = pr.check_consistency(json_prediction, in_str, out_str)
             print(f'Actual output: "{pr.decode_p(json_prediction, in_str)}"')
@@ -289,14 +289,14 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                           )
                 superepoch_loss = history.history['loss']
                 superepoch_val_loss = history.history['val_loss']
-                
-            loss += superepoch_loss
-            val_loss += superepoch_val_loss
+            
             
             if saving_frequency > 0 and superepoch % saving_frequency == 0:
                 model.save_weights(CHECKPOINT_PREFIX)
             
             if evolution_graph:
+                loss += superepoch_loss
+                val_loss += superepoch_val_loss
                 epochs_list = range(1, (superepoch + 1) * epochs_per_superepoch + 1)
                 fix, ax = plt.subplots()
                 ax.plot(epochs_list, val_loss, color='orange', label='Validation Loss')
