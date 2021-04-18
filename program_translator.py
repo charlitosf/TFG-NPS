@@ -102,24 +102,29 @@ def cut_by_eop_str(s, leave_first_eop = False):
 def toChar(l):
     return [tokenizer.index_word[c] for c in l]
 
-def compute_rnn_program(rnn, to_char = False, greedy = False, k = 1):
-    if greedy:
+def compute_rnn_program(rnn, to_char = False, k = 1):
+    if k == 1:
         # prediction = tf.map_fn(fn=greedy_decoder, elems=rnn).numpy().astype('int32')
         prediction = np.array(list(map(greedy_decoder, rnn))).astype('int32')
     else:
-        prediction = beam_decoder(rnn, k)[0][0]
+        predictions = beam_decoder(rnn, k)[0]
+        prediction = predictions[0]
+        for p in predictions:
+            if check_rnn_program(p):
+                prediction = p
+                break
     if to_char:
         prediction = cut_by_eop(prediction, to_char)
         return toChar(prediction)
     return prediction
 
-def RNN2JSON(rnn_programs, greedy = False, k = 1):
+def RNN2JSON(rnn_programs, k = 1):
     if isinstance(rnn_programs, list):
         rnn_programs = rnn_programs.copy()
     else:
         rnn_programs = tf.identity(rnn_programs)
     if not isinstance(rnn_programs[0][0], int):
-        f = [compute_rnn_program(rnn_program, False, greedy, k) for rnn_program in rnn_programs]
+        f = [compute_rnn_program(rnn_program, False, k) for rnn_program in rnn_programs]
         integer_programs = np.array(f).astype('int32')
         # integer_programs = tf.map_fn(fn=compute_rnn_program, elems=rnn_programs).numpy().astype('int32')
     else:
@@ -141,7 +146,7 @@ def RNN2JSON(rnn_programs, greedy = False, k = 1):
 def rnn2list(rnn):
     res = []
     for elem in rnn:
-        predictionChars = compute_rnn_program(elem, True)
+        predictionChars = compute_rnn_program(elem)
         res.append(predictionChars)
     return res
 
@@ -193,12 +198,11 @@ def check_method(actual, actual_method):
     
     return actual
 
-def is_rnn_program_correct(program):
+def check_rnn_program(program, beam_width = 1):
     try:
-        RNN2JSON([program])
-        return True
+        return RNN2JSON([program], beam_width)[0], True
     except Exception:
-        return False
+        return None, False
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Program translator JSON - Number Array")
@@ -225,5 +229,3 @@ if __name__ == "__main__":
             f.close()
     
     print(res)
-    
-    # print(is_rnn_program_correct(inpt[0]))
