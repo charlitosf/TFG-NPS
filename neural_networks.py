@@ -71,10 +71,76 @@ def generate_attention_model(tam_intent_vocabulary, tam_program_vocabulary):
     model.compile(optimizer='sgd',loss='categorical_crossentropy', metrics=[tf.keras.metrics.Accuracy()])
     return model
 
-if __name__ == "__main__":
+
+def get_multi_model(tam_intent_vocabulary, tam_program_vocabulary):
+    from tensorflow.keras.layers import TimeDistributed
+
+    input_i   =   tf.keras.layers.Input(shape=(None,None,))
+    embed_i   =   TimeDistributed(tf.keras.layers.Embedding(input_dim=tam_intent_vocabulary, output_dim=64))(input_i)
+    lstm_i_output    =   TimeDistributed(tf.keras.layers.LSTM(64, return_sequences=True))(embed_i)
     
+    # lstm_i_ouput.shape == [batch_size, longitud secuencia input, 64]
+    
+    input_o   =   tf.keras.layers.Input(shape=(None,None,))
+    embed_o   =   TimeDistributed(tf.keras.layers.Embedding(input_dim=tam_intent_vocabulary, output_dim=64))(input_o)
+    attention_o2i = tf.keras.layers.Attention()([embed_o, lstm_i_output])
+
+    # attention_o2i.shape == [batch_size, longitud secuencia output, 64]
+    concat_o = tf.keras.layers.Concatenate()([embed_o, attention_o2i])
+
+    lstm_o_output    =   TimeDistributed(tf.keras.layers.LSTM(64, return_sequences=True))(concat_o)
+    
+    # lstm_o_ouput.shape == [batch_size, longitud secuencia output, 64]
+    
+    input_p   =   tf.keras.layers.Input(shape=(None,None,))
+    embed_p   =   TimeDistributed(tf.keras.layers.Embedding(input_dim=tam_program_vocabulary, output_dim=64))(input_p)
+    
+    # DOUBLE ATTENTION
+    
+    attention_p2o = tf.keras.layers.Attention()([embed_p, lstm_o_output])
+    attention_p2i = tf.keras.layers.Attention()([attention_p2o, lstm_i_output])
+    concat_p = tf.keras.layers.Concatenate()([embed_p, attention_p2i])
+
+    lstm_p_output =   TimeDistributed(tf.keras.layers.LSTM(64, return_sequences=True))(concat_p)
+    
+    # lstm_p_output.shape == [batch_size, longitud secuencia program, 64]
+    dense_layer = TimeDistributed(tf.keras.layers.Dense(128,activation='relu'))(lstm_p_output)
+
+    print(dense_layer)
+
+    def agg_over_time(x):
+        x = tf.keras.backend.mean(x, axis = 1)
+        return x
+
+    dense_avg_layer = tf.keras.layers.Lambda(agg_over_time)(dense_layer)
+
+    print(dense_avg_layer)
+
+    token_classifier = tf.keras.layers.Dense(tam_program_vocabulary, activation='softmax')(dense_avg_layer)
+    model = tf.keras.Model(inputs=[input_i, input_o, input_p], outputs=token_classifier)
+    model.compile(optimizer='sgd',loss='categorical_crossentropy', metrics=[tf.keras.metrics.Accuracy()])
+    return model
+
+
+if __name__ == "__main__":
     tam_intent_vocabulary = 10
     tam_program_vocabulary = 5
+    model = get_multi_model(tam_intent_vocabulary,tam_program_vocabulary)
+        
+
+    model.summary()
+
+    random_input_i = np.zeros((16, 3, 10)) # [batch_size, no_intents_per_sample, seq_length de la entrada del intent]
+    random_input_o = np.zeros((16, 3, 20)) # [batch_size, no_intents_per_sample, seq_length de la salida del intent]
+    
+    random_input_p_input = np.zeros((16, 3, 1+6))  # [batch_size, <sop> + seq_length del programa]
+    random_input_p_prediction = np.zeros((16, 6+1, tam_program_vocabulary)) # [batch_size, seq_length del programa + <eop>, tam_program_vocabulary]
+    
+    model.fit(x=[random_input_i, random_input_o, random_input_p_input], y= random_input_p_prediction, epochs=3)
+
+
+
+    '''
     
     normal_model = generate_model(tam_intent_vocabulary, tam_program_vocabulary)
     
@@ -102,4 +168,5 @@ if __name__ == "__main__":
     random_input_p_prediction = np.zeros((1, 6+1, tam_program_vocabulary)) # [batch_size, seq_length del programa + <eop>, tam_program_vocabulary]
     
     attention_model.fit(x=[random_input_i, random_input_o, random_input_p_input], y= random_input_p_prediction, epochs=3)
+    '''
     
