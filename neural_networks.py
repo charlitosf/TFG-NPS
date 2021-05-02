@@ -133,7 +133,7 @@ if __name__ == "__main__":
     random_input_i = np.zeros((16, 3, 10)) # [batch_size, no_intents_per_sample, seq_length de la entrada del intent]
     random_input_o = np.zeros((16, 3, 20)) # [batch_size, no_intents_per_sample, seq_length de la salida del intent]
     
-    random_input_p_input = np.zeros((16, 3, 1+6))  # [batch_size, <sop> + seq_length del programa]
+    random_input_p_input = np.zeros((16, 3, 1+6))  # [batch_size, no_intents_per_sample, <sop> + seq_length del programa]
     random_input_p_prediction = np.zeros((16, 6+1, tam_program_vocabulary)) # [batch_size, seq_length del programa + <eop>, tam_program_vocabulary]
     
     model.fit(x=[random_input_i, random_input_o, random_input_p_input], y= random_input_p_prediction, epochs=3)
