@@ -48,23 +48,34 @@ def getIOtokenizer():
 def integer_list2string(integer_list):
     return "".join([(int_to_char_intent[tok] if tok != 0 else '') for tok in integer_list])
 
-def test_model(model, generator, beam_width):
+def test_model(model, generator, beam_width, full):
     inputs, output = next(generator)
     
-    inputs[2] = np.array(list(map(lambda values: values[0] + [0] * CONFIG['MAX_PROGRAM_SIZE'], inputs[2])))
+    if full:
+        inputs[2] = np.array(list(map(lambda values: list(map(lambda vs: [vs[0]] + [0] * CONFIG['MAX_PROGRAM_SIZE'], values)), inputs[2])))
+    else:
+        inputs[2] = np.array(list(map(lambda values: [values[0]] + [0] * CONFIG['MAX_PROGRAM_SIZE'], inputs[2])))
     
     predictions = model(inputs)
     expectations = pt.RNN2JSON(output)
     prediction_chars = pt.rnn2list(predictions)
     
     for i in range(predictions.shape[0]):
-        in_str = integer_list2string(inputs[0][i])
-        out_str = integer_list2string(inputs[1][i])
-        print('\nIntent:')
-        print(f'Input: "{in_str}"')
-        print(f'Output: "{out_str}"\n')
-        
-        
+        if full:
+            print('\nIntent:')
+            for j in range(inputs[0].shape[1]):
+                in_str = integer_list2string(inputs[0][i][j])
+                out_str = integer_list2string(inputs[1][i][j])
+                print(f'Input: "{in_str}"')
+                print(f'Output: "{out_str}"\n')
+        else:
+            in_str = integer_list2string(inputs[0][i])
+            out_str = integer_list2string(inputs[1][i])
+            print('\nIntent:')
+            print(f'Input: "{in_str}"')
+            print(f'Output: "{out_str}"\n')
+            
+            
         print('Expected output program:')
         print(expectations[i])
         
@@ -73,7 +84,7 @@ def test_model(model, generator, beam_width):
         if correct:
             print(json_prediction)
             distance = pr.check_consistency(json_prediction, in_str, out_str)
-            print(f'Actual output: "{pr.decode_p(json_prediction, in_str)}"')
+            print(f'Actual output (of last input): "{pr.decode_p(json_prediction, in_str)}"')
             print(f'Levenshtein distance: {distance}')
         else:
             print(prediction_chars[i])
@@ -81,11 +92,105 @@ def test_model(model, generator, beam_width):
         print()
             
 
-def translate_wordList(wordlist, char_to_int, result):
-    for idx, w in enumerate(wordlist):
+def translate_wordList_full(wordlist, char_to_int, result):
+    for idx_b, intent in enumerate(wordlist):
+        for idx_w, w, in enumerate(intent):
             for idx_c, c in enumerate(w):
-                result[ idx ][ idx_c ] = char_to_int[c]
+                result[ idx_b ][ idx_w ][ idx_c ] = char_to_int[c]
     return result
+
+def translate_wordList(wordlist, char_to_int, result):
+    for idx_b, w in enumerate(wordlist):
+            for idx_c, c in enumerate(w):
+                result[ idx_b ][ idx_c ] = char_to_int[c]
+    return result
+
+
+def generator_full(tam_lote = 32):
+    """
+    Función generadora de los datos de la red neuronal
+
+    Genera lotes de tamaño tam_lote
+    
+    - Por cada elemento del lote:
+      - Genera una string como input
+      - Hasta que funcione:
+        - Genera un programa
+        - Ejecuta el programa para obtener la string de output
+      - Traduce el programa finalmente generado (el primero que funcione) a array de enteros y le añade un <EOP> al final
+    - Genera un lote de strings de entrada del tamaño de la string de entrada más larga generada
+    - Genera un lote de strings de salida del tamaño de la string de salida más larga generada
+    - Genera un lote de programas del tamaño del programa más largo generado, traducido a one-hot
+    - Genera un lote del mismo tamaño que el anterior (sin traducir a one-hot) que empieza con <SOP> y el resto ceros
+    - Devuelve un vector con los lotes de strings de entrada, salida y el "programa" de entrada (la <SOP> y los ceros), junto al lote de programas de salida
+    """
+
+    while True:
+        i_words = []
+        o_words = []
+        
+        o_programs = []
+        i = 0
+        amount_inputs = random.randint(CONFIG['MIN_INPUTS_PER_PROGRAM'], CONFIG['MAX_INPUTS_PER_PROGRAM'])
+        while i < tam_lote:
+            fails = True
+            while fails:
+                i_words_program = []
+                o_words_program = []
+                j = 0
+                o_program = pg.gen_p()
+                fails = False
+                while j < amount_inputs and not fails:
+                    try:
+                        i_word = pg.gen_word()
+                        o_word = list(pr.decode_p(o_program, ''.join(i_word)))
+                        if len(o_word) == 0:
+                            fails = True
+                    except:
+                        fails = True
+                        #print("Execution failure, generating a new program")
+                    if not fails:
+                        i_words_program.append(i_word)
+                        o_words_program.append(o_word)
+                    
+                        j += 1
+                        
+                        
+            
+            i += 1
+            i_words.append(i_words_program)
+            o_words.append(o_words_program)
+            
+            translated_program = pt.JSON2RNN([o_program])[0]
+            o_programs.append(translated_program + [char_to_int_program['<EOP>']])
+            
+        if len(i_words) != tam_lote or len(o_words) != tam_lote:
+            print(len(i_words), len(o_words))
+        max_longitud_iwords = max([len(word) for words in i_words for word in words])
+        max_longitud_owords = max([len(word) for words in o_words for word in words])
+        
+        max_longitud_oprograms = max([len(word) for word in o_programs])
+        
+        
+        I_WORDS = np.zeros((tam_lote, amount_inputs, max_longitud_iwords), dtype=np.int32)
+        O_WORDS = np.zeros((tam_lote, amount_inputs, max_longitud_owords), dtype=np.int32)
+        I_PROGRAMS = np.zeros((tam_lote, amount_inputs, max_longitud_oprograms), dtype=np.int32)
+        
+        O_PROGRAMS = np.zeros((tam_lote, max_longitud_oprograms, tam_program_vocabulary), dtype=np.int32)
+        
+        I_WORDS = translate_wordList_full(i_words, char_to_int_intent, I_WORDS)
+        
+        O_WORDS = translate_wordList_full(o_words, char_to_int_intent, O_WORDS)
+        
+        for idx_ip, i in enumerate(I_PROGRAMS):
+            for idx_p, p in enumerate(i):
+                I_PROGRAMS[ idx_ip ][ idx_p ][ 0 ] = char_to_int_program['<SOP>']
+        
+        for idx_op, p in enumerate(o_programs):
+            for idx_c, c in enumerate(p):
+                O_PROGRAMS[ idx_op ][ idx_c ][ c ] = 1
+        
+        yield [I_WORDS, O_WORDS, I_PROGRAMS], O_PROGRAMS
     
     
 def generator(tam_lote = 32):
@@ -169,11 +274,11 @@ def generator(tam_lote = 32):
         O_WORDS = translate_wordList(o_words, char_to_int_intent, O_WORDS)
         
         for idx_ip, p in enumerate(I_PROGRAMS):
-            I_PROGRAMS[ idx_ip ][ 0 ] = char_to_int_program['<SOP>']
+                I_PROGRAMS[ idx_ip ][ 0 ] = char_to_int_program['<SOP>']
         
         for idx_op, p in enumerate(o_programs):
             for idx_c, c in enumerate(p):
-                O_PROGRAMS[ idx_op ][ idx_c ][ o_programs[ idx_op ][ idx_c ] ] = 1
+                O_PROGRAMS[ idx_op ][ idx_c ][ c ] = 1
         
         yield [I_WORDS, O_WORDS, I_PROGRAMS], O_PROGRAMS
 
@@ -200,6 +305,7 @@ def getParser(description):
     parser.add_argument('--tests_per_superepoch', type=int, default=1, help='Amount of examples passed to the network for each superepoch (for testing purposes)')
     parser.add_argument('--use_generator', action='store_true', help='Use generator a generator function for training instead of a whole dataset')
     parser.add_argument('--use_attention', action='store_true', help='Generate the model using the attetion mechanism')
+    parser.add_argument('--use_full', action='store_true', help='Generate the model using the full model')
     parser.add_argument('--use_last_checkpoint', action='store_true', help='Start the model from the last checkpoint')
     parser.add_argument('--beam_width', type=int, default=1, help='Width of the beam when doing predictions')
     return parser
@@ -207,9 +313,11 @@ def getParser(description):
 def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batch_size = 32, total_epochs = 20,
              epochs_per_superepoch = 10, saving_frequency = 10, evolution_graph = True, tests_per_superepoch = 0,
              use_generator = True, same_data_for_validation = False, attention = False, use_last_checkpoint = False,
-             beam_width = 1):
+             beam_width = 1, full = True):
     
-    if attention:
+    if full:
+        model = nn.get_multi_model(tam_intent_vocabulary, tam_program_vocabulary)
+    elif attention:
         model = nn.generate_model(tam_intent_vocabulary, tam_program_vocabulary)
     else:
         model = nn.generate_attention_model(tam_intent_vocabulary, tam_program_vocabulary)
@@ -218,13 +326,19 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     BATCH_SIZE = batch_size
     VERBOSE = 2
     
-    gen_training = generator(BATCH_SIZE)
-    gen_validation = generator(BATCH_SIZE)
+    if full:
+        gen_training = generator_full(BATCH_SIZE)
+        gen_validation = generator_full(BATCH_SIZE)
+    else:
+        gen_training = generator(BATCH_SIZE)
+        gen_validation = generator(BATCH_SIZE)
     
     steps_per_epoch = int(EXAMPLES_PER_EPOCH / BATCH_SIZE)
     validation_steps = int(EXAMPLES_PER_EPOCH_VALIDATION / BATCH_SIZE)
     
-    if attention:
+    if full:
+        CHECKPOINT_PREFIX = 'full_checkpoints/last_cp'
+    elif attention:
         CHECKPOINT_PREFIX = 'att_checkpoints/last_cp'
     else:
         CHECKPOINT_PREFIX = 'checkpoints/last_cp'
@@ -235,12 +349,21 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
     if train:
         loss = []
         val_loss = []
-        testing_generator = generator(tests_per_superepoch)
+        if full:
+            testing_generator = generator_full(tests_per_superepoch)
+        else:
+            testing_generator = generator(tests_per_superepoch)
         if not use_generator:
-            dataset_input, dataset_output = next(generator(steps_per_epoch * BATCH_SIZE))
+            if full:
+                dataset_input, dataset_output = next(generator_full(steps_per_epoch * BATCH_SIZE))
+            else:
+                dataset_input, dataset_output = next(generator(steps_per_epoch * BATCH_SIZE))
             
         if same_data_for_validation:
-            same_data_generator = generator(steps_per_epoch * BATCH_SIZE)
+            if full:
+                same_data_generator = generator_full(steps_per_epoch * BATCH_SIZE)
+            else:
+                same_data_generator = generator(steps_per_epoch * BATCH_SIZE)
             
         for superepoch in range(int(total_epochs/epochs_per_superepoch)):
             print(f'\nSuperepoch {superepoch + 1}/{int(total_epochs/epochs_per_superepoch)}:\n')
@@ -308,7 +431,7 @@ def getModel(train = True, examples_per_epoch = 4096, validation_ratio = 8, batc
                 plt.show()
             
             if (tests_per_superepoch > 0):
-                test_model(model, testing_generator, beam_width)
+                test_model(model, testing_generator, beam_width, full)
     
     return model
 
@@ -326,7 +449,8 @@ def get_model_from_args(args):
             same_data_for_validation=args.same_data_for_validation,
             attention=args.use_attention,
             use_last_checkpoint=args.use_last_checkpoint,
-            beam_width=args.beam_width
+            beam_width=args.beam_width,
+            full=args.use_full
         )
 
 tokenizer_program = pt.get_tokenizer()
