@@ -146,7 +146,7 @@ def RNN2JSON(rnn_programs, k = 1):
 def rnn2list(rnn):
     res = []
     for elem in rnn:
-        predictionChars = compute_rnn_program(elem)
+        predictionChars = compute_rnn_program(elem, True)
         res.append(predictionChars)
     return res
 
