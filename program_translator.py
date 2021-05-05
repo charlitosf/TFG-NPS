@@ -7,7 +7,6 @@ Created on Thu Nov 12 11:01:40 2020
 import argparse
 import json
 from tensorflow.keras.preprocessing.text import Tokenizer
-import tensorflow as tf
 import numpy as np
 from math import log
 
@@ -73,7 +72,7 @@ def JSON2RNN(json):
     return tokenizer.texts_to_sequences(res)
     
 def greedy_decoder(values):
-    return np.argmax(values.numpy())
+    return np.argmax(values)
 
 def beam_decoder(values, k):
     res = [[list(), 0.0]]
@@ -110,7 +109,8 @@ def compute_rnn_program(rnn, to_char = False, k = 1):
         predictions = beam_decoder(rnn, k)[0]
         prediction = predictions[0]
         for p in predictions:
-            if check_rnn_program(p):
+            _, correct = check_rnn_program(p)
+            if correct:
                 prediction = p
                 break
     if to_char:
@@ -119,10 +119,6 @@ def compute_rnn_program(rnn, to_char = False, k = 1):
     return prediction
 
 def RNN2JSON(rnn_programs, k = 1):
-    if isinstance(rnn_programs, list):
-        rnn_programs = rnn_programs.copy()
-    else:
-        rnn_programs = tf.identity(rnn_programs)
     if not isinstance(rnn_programs[0][0], int):
         f = [compute_rnn_program(rnn_program, False, k) for rnn_program in rnn_programs]
         integer_programs = np.array(f).astype('int32')
