@@ -4,7 +4,7 @@ This is the repository that stores the code associated to the Final Degree Proje
 
 ## Short description
 
-The goal of this collection of scripts is to generate an interpretable computer program by the means of a neural network that is given a series of input and their related expected output strings. The generated program should be able to transform the provided inputs into the outputs and grasp the underlying pattern of execution so that, given an input not shown to the neural model, the execution of the program passing the input generates the expected output.
+The goal of this collection of scripts is to generate an interpretable computer program by the means of a neural network that is given a series of input and their related expected output strings. The generated program should be able to transform the provided inputs into the outputs and grasp the underlying pattern of execution so that, given an input not shown to the neural model, the execution of the program with the new input generates the expected output.
 
 The programs are defined using the Domain Specific Language (DSL) described in section 4.3 of the [project report](https://rua.ua.es/dspace/bitstream/10045/115985/1/Synthetic_generation_of_programs_using_Neural_Ne_Ferrus_Ferri_Carlos_Mariano.pdf) (pages 23 and 55).
 
